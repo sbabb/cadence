@@ -1,0 +1,1391 @@
+/* Cadence.
+ *
+ * Palette is Tokyo Night. Every color in the app comes from the block below -
+ * nothing downstream picks its own hex - which is what keeps the whole surface
+ * speaking one language, and is what would make a theme switcher a matter of
+ * swapping this block rather than auditing the stylesheet.
+ *
+ * The rules the design follows, so later additions stay consistent:
+ *   - Sharp corners. No border radius anywhere.
+ *   - No shadows, no gradients, no blur. Flat, always.
+ *   - Borders carry state: dim by default, accent when active or focused.
+ *     Background fills are for grouping, never for indicating status.
+ *   - Color always pairs with a number or a word. It never carries meaning
+ *     alone.
+ */
+
+:root {
+  --bg: #1a1b26;
+  --bg-panel: #1f2335;
+  --bg-elevated: #292e42;
+
+  --border: #2f3549;
+  --border-bright: #3b4261;
+
+  --text: #c0caf5;
+  --text-mid: #787c99;
+  --text-dim: #565f89;
+
+  --green: #9ece6a;
+  --amber: #e0af68;
+  --red: #f7768e;
+  --red-deep: #db4b4b;
+  --teal: #73daca;
+  --blue: #7aa2f7;
+  --cyan: #7dcfff;
+  --purple: #bb9af7;
+  --orange: #ff9e64;
+
+  --mono: 'JetBrains Mono', ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+/* Mobile browsers paint a translucent block over the whole bounding box of a
+   tapped control. On a square button containing a circular dial that reads as
+   a rendering fault rather than feedback, so it's suppressed app-wide - every
+   control here already has its own :active state, and the dial has a proper
+   press animation. */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+html, body, #root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 15px;
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+}
+
+input, button, select, textarea {
+  font-family: inherit;
+}
+
+/* One consistent focus treatment app-wide: the border goes accent-blue, the
+   same way a tiling window manager marks the focused window. */
+:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 1px;
+}
+
+.app-shell {
+  min-height: 100vh;
+  width: 100%;
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 14px;
+  position: relative;
+}
+
+.ascii-header {
+  margin: 0 0 14px 0;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  color: var(--text);
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 8px;
+  white-space: pre-wrap;
+}
+
+.screen-title {
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  margin: 6px 0 14px 0;
+}
+
+/* ---------- Period Setup ---------- */
+
+.setup-screen {
+  display: flex;
+  flex-direction: column;
+}
+
+.setup-message {
+  margin: 0 0 4px 0;
+  color: var(--amber);
+  font-size: 13px;
+}
+
+.setup-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.field-label {
+  font-size: 11px;
+  color: var(--text-dim);
+  letter-spacing: 0.8px;
+}
+
+.field input[type='date'] {
+  background: var(--bg-panel);
+  color: var(--text);
+  border: 1px solid var(--border);
+  padding: 10px;
+  font-size: 15px;
+}
+
+.field input[type='date']:focus {
+  border-color: var(--blue);
+}
+
+.date-input-row {
+  display: flex;
+  align-items: stretch;
+  gap: 6px;
+}
+
+.date-input-row input[type='date'] {
+  flex: 1;
+  min-width: 0;
+}
+
+.date-picker-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: transparent;
+  color: var(--text-mid);
+  border: 1px solid var(--border);
+  padding: 0 12px;
+  font-size: 12px;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.date-picker-button:hover,
+.date-picker-button:active {
+  color: var(--text);
+  border-color: var(--border-bright);
+}
+
+.field input[type='date']::-webkit-calendar-picker-indicator {
+  filter: invert(72%) sepia(19%) saturate(1000%) hue-rotate(190deg) brightness(1.05);
+  cursor: pointer;
+  padding: 4px;
+  transform: scale(1.3);
+}
+
+.amount-input-row {
+  display: flex;
+  align-items: center;
+  border: 1px solid var(--border);
+  background: var(--bg-panel);
+  padding: 0 10px;
+}
+
+.amount-input-row:focus-within {
+  border-color: var(--blue);
+}
+
+.dollar-sign {
+  font-size: 19px;
+  color: var(--text-dim);
+  margin-right: 4px;
+}
+
+.amount-input-row input {
+  flex: 1;
+  min-width: 0;
+  background: transparent;
+  border: none;
+  color: var(--text);
+  font-size: 19px;
+  padding: 10px 0;
+  outline: none;
+}
+
+.setup-hint {
+  color: var(--text-mid);
+  font-size: 12px;
+  margin: 0;
+}
+
+.error-text {
+  color: var(--red);
+  font-size: 12px;
+  margin: 0;
+}
+
+.primary-button {
+  background: transparent;
+  color: var(--green);
+  border: 1px solid var(--green);
+  padding: 13px;
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 1.5px;
+  cursor: pointer;
+}
+
+.primary-button:hover,
+.primary-button:active {
+  background: var(--green);
+  color: var(--bg);
+}
+
+.cancel-button {
+  background: transparent;
+  color: var(--text-dim);
+  border: 1px solid var(--border);
+  padding: 10px;
+  font-size: 12px;
+  letter-spacing: 1px;
+  cursor: pointer;
+}
+
+.cancel-button:hover,
+.cancel-button:active {
+  color: var(--text);
+  border-color: var(--border-bright);
+}
+
+/* ---------- Dashboard ---------- */
+
+.dashboard-screen {
+  display: flex;
+  flex-direction: column;
+  padding-bottom: 24px;
+}
+
+.period-range {
+  font-size: 12px;
+  color: var(--text-dim);
+  letter-spacing: 0.5px;
+  margin-bottom: 14px;
+}
+
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1px;
+  background: var(--border);
+  border: 1px solid var(--border);
+  margin-bottom: 14px;
+}
+
+/* Tiled rather than spaced: the 1px gaps above are the grid's background
+   showing through, so the boxes read as one dense panel divided into cells,
+   the way a status bar does. */
+.stat-box {
+  background: var(--bg-panel);
+  padding: 9px 6px;
+  text-align: center;
+}
+
+.stat-label {
+  font-size: 9px;
+  color: var(--text-dim);
+  letter-spacing: 0.8px;
+  margin-bottom: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.stat-value {
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.stat-value.negative,
+.negative {
+  color: var(--red);
+}
+
+/* ---------- Spend dial ---------- */
+
+.dial-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.dial-shell {
+  width: 100%;
+  max-width: 240px;
+  transform-origin: center center;
+}
+
+.dial-breathing {
+  animation: dial-breathe calc(2600ms / var(--motion-speed, 1)) cubic-bezier(0.42, 0, 0.58, 1) infinite;
+}
+
+.dial-pulsing {
+  animation: dial-pulse calc(420ms / var(--motion-speed, 1)) cubic-bezier(0.34, 1.56, 0.64, 1) 1;
+}
+
+@keyframes dial-breathe {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.018); }
+}
+
+@keyframes dial-pulse {
+  0% { transform: scale(1); }
+  45% { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
+
+.dial-button {
+  position: relative;
+  display: block;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  background: transparent;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  color: inherit;
+  transition: transform calc(140ms / var(--motion-speed, 1)) cubic-bezier(0.4, 0, 1, 1);
+}
+
+.dial-svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.dial-track {
+  stroke: var(--bg-elevated);
+}
+
+/* Constrained to the ring's interior rather than the button's full square, so
+   nothing inside can run out over the stroke. */
+.dial-center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  padding: 0 22%;
+  text-align: center;
+}
+
+.dial-amount {
+  font-size: 38px;
+  font-weight: 700;
+  letter-spacing: -1px;
+  line-height: 1.1;
+}
+
+.dial-label {
+  font-size: 11px;
+  color: var(--text-dim);
+  letter-spacing: 1px;
+  margin-top: 2px;
+  line-height: 1.4;
+}
+
+/* The date of a non-today day gets its own line - a full weekday-plus-date
+   alongside the status word is wider than the ring's interior. */
+.dial-label-date {
+  display: block;
+  color: var(--blue);
+}
+
+.dial-hint {
+  font-size: 10px;
+  color: var(--text-dim);
+  letter-spacing: 1px;
+  margin-top: 8px;
+  opacity: 0.75;
+}
+
+/* Only rendered once today is actually over its limit. Silent the rest of the
+   time, because until then it has nothing useful to say. */
+.dial-over-note {
+  margin: 10px 0 0 0;
+  font-size: 11px;
+  color: var(--text-mid);
+  letter-spacing: 0.5px;
+  text-align: center;
+}
+
+.dial-over-note strong {
+  color: var(--amber);
+  font-weight: 500;
+}
+
+.today-section {
+  margin-bottom: 16px;
+}
+
+.edit-total-link {
+  display: block;
+  width: 100%;
+  background: transparent;
+  border: none;
+  color: var(--text-dim);
+  font-size: 11px;
+  letter-spacing: 1px;
+  text-align: center;
+  padding: 10px 0 0 0;
+  cursor: pointer;
+}
+
+.edit-total-link:hover,
+.edit-total-link:active {
+  color: var(--text);
+}
+
+/* Only shown on a period's final day, clarifying that the (otherwise
+   large-looking) rolled-over budget shown here is the ACTUAL total available
+   today, distinct from the steady baseline the stat box above reverts to
+   showing on that same day. */
+.last-day-note {
+  border: 1px solid var(--amber);
+  color: var(--amber);
+  background: var(--bg-panel);
+  padding: 9px 12px;
+  font-size: 11px;
+  line-height: 1.5;
+  letter-spacing: 0.3px;
+  text-align: center;
+  margin: 0 0 14px 0;
+}
+
+.last-day-note strong {
+  font-size: 14px;
+}
+
+/* ---------- Day list ---------- */
+
+.day-list {
+  border: 1px solid var(--border);
+}
+
+.day-list-header {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr 1fr;
+  gap: 4px;
+  padding: 7px 10px;
+  font-size: 10px;
+  color: var(--text-dim);
+  letter-spacing: 0.8px;
+  background: var(--bg-panel);
+  border-bottom: 1px solid var(--border);
+}
+
+.day-row {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr 1fr;
+  gap: 4px;
+  padding: 7px 10px;
+  font-size: 13px;
+  border-bottom: 1px solid var(--border);
+  border-left: 2px solid transparent;
+}
+
+.day-row:last-child {
+  border-bottom: none;
+}
+
+/* Today is marked permanently but quietly; SELECTION is the bright one, since
+   that's the row the dial is currently showing and the thing you're about to
+   edit. When they're the same row - the default - the two simply stack and it
+   reads as one strong highlight. Neither touches text color, which is left
+   free to carry over/under status. */
+.day-row-today {
+  border-left-color: var(--border-bright);
+  background: var(--bg-panel);
+}
+
+.day-row-selected {
+  border-left-color: var(--blue);
+  background: var(--bg-elevated);
+}
+
+.day-row-unknown {
+  color: var(--text-dim);
+}
+
+.day-row-under {
+  color: var(--green);
+}
+
+.day-row-over {
+  color: var(--red);
+}
+
+.day-row-atlimit {
+  color: var(--amber);
+}
+
+/* A deliberate $0 log - a positive achievement worth acknowledging in its own
+   right, distinct from both "unlogged" and "spent something under limit". */
+.day-row-zero {
+  color: var(--teal);
+}
+
+.day-row-clickable {
+  cursor: pointer;
+}
+
+.day-row-clickable:hover,
+.day-row-clickable:active {
+  background: var(--bg-elevated);
+}
+
+.day-row-spent,
+.day-row-limit {
+  text-align: right;
+}
+
+/* ---------- Dev tools (temporary - remove before deployment) ---------- */
+
+.dev-reset-section {
+  margin-top: 28px;
+  padding-top: 14px;
+  border-top: 1px dashed var(--border-bright);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.dev-reset-button,
+.dev-clear-today-button,
+.dev-trigger-summary-button,
+.dev-debug-button {
+  background: transparent;
+  border: 1px dashed var(--text-dim);
+  color: var(--text-dim);
+  padding: 7px 12px;
+  font-size: 10px;
+  letter-spacing: 1px;
+  cursor: pointer;
+}
+
+.dev-reset-button:hover { color: var(--orange); border-color: var(--orange); }
+.dev-clear-today-button:hover { color: var(--text-mid); border-color: var(--text-mid); }
+.dev-trigger-summary-button:hover { color: var(--blue); border-color: var(--blue); }
+.dev-debug-button:hover { color: var(--purple); border-color: var(--purple); }
+
+/* ---------- Motion debug panel (temporary, dev only) ---------- */
+
+.debug-panel {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 300;
+  max-height: 72vh;
+  overflow-y: auto;
+  background: var(--bg);
+  border-top: 1px solid var(--purple);
+  padding: 12px 14px 18px 14px;
+}
+
+.debug-inner {
+  width: 100%;
+  max-width: 480px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.debug-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.debug-title {
+  font-size: 11px;
+  letter-spacing: 1.5px;
+  color: var(--purple);
+  margin: 0;
+}
+
+.debug-close {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  font-size: 11px;
+  padding: 4px 9px;
+  cursor: pointer;
+  letter-spacing: 1px;
+}
+
+.debug-close:hover {
+  color: var(--text);
+  border-color: var(--border-bright);
+}
+
+.debug-block {
+  border: 1px solid var(--border);
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.debug-block-title {
+  font-size: 9px;
+  letter-spacing: 1.2px;
+  color: var(--text-dim);
+  margin: 0;
+}
+
+.debug-scrub-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.debug-scrub-row input[type='range'] {
+  flex: 1;
+  accent-color: var(--purple);
+  min-width: 0;
+}
+
+.debug-scrub-value {
+  font-size: 12px;
+  color: var(--text);
+  min-width: 74px;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.debug-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.debug-button {
+  background: transparent;
+  border: 1px solid var(--border-bright);
+  color: var(--text-mid);
+  font-size: 10px;
+  letter-spacing: 0.8px;
+  padding: 6px 9px;
+  cursor: pointer;
+}
+
+.debug-button:hover {
+  color: var(--purple);
+  border-color: var(--purple);
+}
+
+.debug-button-active {
+  color: var(--purple);
+  border-color: var(--purple);
+  background: var(--bg-elevated);
+}
+
+/* The readout is the point of this panel: it is a spec sheet you can watch,
+   with the exact durations and curves the running animation is using, so the
+   numbers can be retyped straight into Rive. */
+.debug-readout {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-size: 10px;
+}
+
+.debug-readout-row {
+  display: grid;
+  grid-template-columns: 96px 1fr;
+  gap: 8px;
+  align-items: baseline;
+}
+
+.debug-readout-key {
+  color: var(--text-dim);
+  letter-spacing: 0.5px;
+}
+
+.debug-readout-value {
+  color: var(--text);
+  word-break: break-all;
+}
+
+.debug-swatch-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.debug-swatch {
+  width: 22px;
+  height: 12px;
+  border: 1px solid var(--border-bright);
+  flex: 0 0 auto;
+}
+
+/* ---------- Confirm dialog ---------- */
+
+.confirm-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(13, 14, 20, 0.88);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  z-index: 400;
+}
+
+.confirm-dialog {
+  width: 100%;
+  max-width: 400px;
+  background: var(--bg-panel);
+  border: 1px solid var(--border-bright);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.confirm-dialog-danger {
+  border-color: var(--red);
+}
+
+.confirm-message {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text);
+}
+
+.confirm-dialog-danger .confirm-message {
+  color: var(--red);
+}
+
+.confirm-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.confirm-actions .cancel-button {
+  flex: 1;
+  text-align: center;
+}
+
+.confirm-button {
+  flex: 1;
+  background: transparent;
+  color: var(--green);
+  border: 1px solid var(--green);
+  padding: 11px;
+  font-size: 13px;
+  letter-spacing: 1px;
+  cursor: pointer;
+}
+
+.confirm-button:hover,
+.confirm-button:active {
+  background: var(--green);
+  color: var(--bg);
+}
+
+.confirm-button-danger {
+  color: var(--red);
+  border-color: var(--red);
+}
+
+.confirm-button-danger:hover,
+.confirm-button-danger:active {
+  background: var(--red);
+  color: var(--bg);
+}
+
+/* ---------- Log spend sheet ---------- */
+
+.log-spend-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(13, 14, 20, 0.8);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  z-index: 350;
+}
+
+.log-spend-sheet {
+  width: 100%;
+  max-width: 480px;
+  background: var(--bg-panel);
+  border-top: 1px solid var(--blue);
+  padding: 20px 14px 28px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  animation: slide-up 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes slide-up {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+.log-spend-title {
+  font-size: 15px;
+  letter-spacing: 1px;
+}
+
+.log-spend-limit {
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+.log-spend-input-row {
+  display: flex;
+  align-items: center;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  padding: 0 12px;
+}
+
+.log-spend-input-row:focus-within {
+  border-color: var(--blue);
+}
+
+.log-spend-input-row input {
+  flex: 1;
+  /* Without this the input refuses to shrink below its intrinsic ~20-character
+     width, overflows the row, and right-aligned text lands off screen. */
+  min-width: 0;
+  background: transparent;
+  border: none;
+  color: var(--text);
+  font-size: 30px;
+  padding: 12px 0;
+  outline: none;
+  text-align: right;
+}
+
+/* ---------- Period pager ---------- */
+
+.period-pager {
+  display: flex;
+  flex-direction: column;
+  touch-action: pan-y;
+}
+
+.pager-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 10px;
+  min-height: 26px;
+}
+
+.pager-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.pager-nav {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.pager-arrow {
+  background: transparent;
+  color: var(--text-mid);
+  border: 1px solid var(--border);
+  width: 24px;
+  height: 24px;
+  line-height: 1;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.pager-arrow:hover:not(:disabled),
+.pager-arrow:active:not(:disabled) {
+  color: var(--text);
+  border-color: var(--border-bright);
+}
+
+.pager-arrow:disabled {
+  color: var(--border-bright);
+  border-color: var(--border);
+  cursor: default;
+}
+
+.pager-indicator {
+  font-size: 10px;
+  color: var(--text-dim);
+  letter-spacing: 0.8px;
+  white-space: nowrap;
+}
+
+.trends-button,
+.settings-button {
+  background: transparent;
+  color: var(--text-mid);
+  border: 1px solid var(--border);
+  padding: 5px 9px;
+  font-size: 10px;
+  letter-spacing: 1px;
+  cursor: pointer;
+}
+
+.trends-button:hover,
+.settings-button:hover,
+.trends-button:active,
+.settings-button:active {
+  color: var(--text);
+  border-color: var(--border-bright);
+}
+
+/* ---------- Past period view ---------- */
+
+.past-period-screen {
+  display: flex;
+  flex-direction: column;
+  padding-bottom: 24px;
+}
+
+.past-period-badge {
+  display: inline-block;
+  align-self: flex-start;
+  font-size: 10px;
+  letter-spacing: 1px;
+  color: var(--text-dim);
+  border: 1px solid var(--border);
+  padding: 3px 8px;
+  margin-bottom: 14px;
+}
+
+/* ---------- Period summary ---------- */
+
+.summary-screen {
+  display: flex;
+  flex-direction: column;
+}
+
+.summary-range {
+  color: var(--text-dim);
+  font-size: 12px;
+  margin: 0 0 16px 0;
+}
+
+.summary-stat-list {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--border);
+  margin-bottom: 16px;
+}
+
+.summary-stat-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 9px 12px;
+  font-size: 13px;
+  border-bottom: 1px solid var(--border);
+}
+
+.summary-stat-row:last-child {
+  border-bottom: none;
+}
+
+.summary-stat-label {
+  color: var(--text-dim);
+  letter-spacing: 0.5px;
+  font-size: 11px;
+}
+
+.summary-stat-value {
+  font-weight: 700;
+}
+
+.summary-assessment {
+  text-align: center;
+  padding: 12px;
+  border: 1px solid;
+  letter-spacing: 1px;
+  font-size: 13px;
+  font-weight: 500;
+  margin-bottom: 20px;
+}
+
+.assessment-good {
+  color: var(--green);
+  border-color: var(--green);
+}
+
+.assessment-neutral {
+  color: var(--text-mid);
+  border-color: var(--border-bright);
+}
+
+.assessment-over {
+  color: var(--red);
+  border-color: var(--red);
+}
+
+/* ---------- Lapsed notice ---------- */
+
+.lapsed-screen {
+  display: flex;
+  flex-direction: column;
+}
+
+.lapsed-message {
+  font-size: 15px;
+  margin: 0 0 10px 0;
+}
+
+.lapsed-submessage {
+  font-size: 12px;
+  color: var(--text-dim);
+  margin: 0 0 20px 0;
+}
+
+/* ---------- Trends ---------- */
+
+.trends-screen {
+  display: flex;
+  flex-direction: column;
+  padding-bottom: 24px;
+}
+
+.trends-subtitle {
+  font-size: 12px;
+  color: var(--text-dim);
+  margin: 0 0 16px 0;
+}
+
+.trends-empty {
+  color: var(--text-dim);
+  font-size: 13px;
+}
+
+.trends-chart {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  overflow-x: auto;
+  padding: 4px 4px 12px 4px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 12px;
+}
+
+.trend-column {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 0 0 auto;
+  width: 52px;
+}
+
+.trend-bar-pct {
+  font-size: 9px;
+  color: var(--text-dim);
+  margin-bottom: 4px;
+  white-space: nowrap;
+}
+
+.trend-bar-track {
+  position: relative;
+  width: 100%;
+  height: 140px;
+  display: flex;
+  align-items: flex-end;
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+}
+
+.trend-bar {
+  width: 100%;
+  min-height: 2px;
+}
+
+.trend-bar-under { background: var(--green); }
+.trend-bar-atlimit { background: var(--amber); }
+.trend-bar-over { background: var(--red); }
+
+.trend-column-label {
+  font-size: 9px;
+  color: var(--text-dim);
+  margin-top: 6px;
+  white-space: nowrap;
+  text-align: center;
+  line-height: 1.4;
+}
+
+.trends-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-bottom: 20px;
+}
+
+.trends-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+  color: var(--text-dim);
+  letter-spacing: 0.5px;
+}
+
+.trends-legend-swatch {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+}
+
+/* ---------- Settings ---------- */
+
+.settings-screen {
+  display: flex;
+  flex-direction: column;
+  padding-bottom: 24px;
+}
+
+.settings-section {
+  border: 1px solid var(--border);
+  padding: 14px;
+  margin-bottom: 16px;
+  display: flex;
+  flex-direction: column;
+}
+
+.settings-section-title {
+  font-size: 13px;
+  letter-spacing: 1.2px;
+  margin: 0 0 6px 0;
+}
+
+.settings-section-hint {
+  font-size: 11px;
+  color: var(--text-dim);
+  margin: 0 0 14px 0;
+  line-height: 1.5;
+}
+
+.settings-saved-text {
+  color: var(--green);
+  font-size: 12px;
+  margin: 0;
+}
+
+.cadence-options {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.cadence-option {
+  background: transparent;
+  color: var(--text-mid);
+  border: 1px solid var(--border);
+  padding: 11px;
+  font-size: 12px;
+  letter-spacing: 0.5px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.cadence-option:hover,
+.cadence-option:active {
+  border-color: var(--border-bright);
+  color: var(--text);
+}
+
+.cadence-option-selected {
+  background: var(--bg-elevated);
+  color: var(--text);
+  border-color: var(--blue);
+}
+
+.abandon-period-button {
+  background: transparent;
+  color: var(--red);
+  border: 1px solid var(--red);
+  padding: 11px;
+  font-size: 12px;
+  letter-spacing: 1px;
+  cursor: pointer;
+}
+
+.abandon-period-button:hover,
+.abandon-period-button:active {
+  background: var(--red);
+  color: var(--bg);
+}
+
+/* ---------- Dial actions, selection note, onboarding ---------- */
+
+.dial-actions {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+
+.dial-action {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  font-size: 10px;
+  letter-spacing: 1px;
+  padding: 7px 11px;
+  cursor: pointer;
+}
+
+.dial-action:hover,
+.dial-action:active {
+  color: var(--text);
+  border-color: var(--border-bright);
+}
+
+.selection-note {
+  font-size: 11px;
+  color: var(--blue);
+  letter-spacing: 0.3px;
+  text-align: center;
+  margin: 0 0 12px 0;
+}
+
+.onboarding-screen {
+  display: flex;
+  flex-direction: column;
+  padding-bottom: 24px;
+}
+
+.onboarding-intro {
+  font-size: 12px;
+  color: var(--text-dim);
+  margin: 0 0 16px 0;
+}
+
+.field-hint {
+  font-size: 10px;
+  color: var(--text-dim);
+  line-height: 1.5;
+}
+
+/* Cadence options carry a second line, because "every 2 weeks" and "twice a
+   month" sound interchangeable and aren't - 26 pay periods against 24. Picking
+   the wrong one misaligns every period from then on, so the counts are stated
+   rather than left to be inferred. */
+.cadence-option {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.cadence-option-label {
+  font-size: 12px;
+  letter-spacing: 0.5px;
+}
+
+.cadence-option-detail {
+  font-size: 10px;
+  color: var(--text-dim);
+  letter-spacing: 0.3px;
+}
+
+.cadence-option-selected .cadence-option-detail {
+  color: var(--text-mid);
+}
+
+.button-icon {
+  display: inline-block;
+  vertical-align: -1px;
+  margin-right: 5px;
+}
+
+/* Touch devices get genuinely larger controls rather than the tight desktop
+   sizing. The dense header is right when you're pointing with a mouse and
+   wrong when you're aiming with a thumb - the visible design language doesn't
+   change, the targets just grow to something you can actually hit. Keyed on
+   `pointer: coarse` rather than a width breakpoint, because it's the input
+   device that matters here, not the screen size. */
+@media (pointer: coarse) {
+  .pager-arrow {
+    width: 40px;
+    height: 40px;
+    font-size: 18px;
+  }
+
+  .trends-button,
+  .settings-button {
+    padding: 13px 14px;
+  }
+
+  /* The dev tools get the same treatment - the motion debug panel in
+     particular is meant to be poked at on a phone. Removed with the rest of
+     them before deployment. */
+  .dev-reset-button,
+  .dev-clear-today-button,
+  .dev-trigger-summary-button,
+  .dev-debug-button {
+    padding: 12px 14px;
+  }
+
+  .edit-total-link {
+    padding: 16px 0 6px 0;
+  }
+
+  .cadence-option {
+    padding: 15px;
+  }
+
+  .date-picker-button {
+    padding: 0 16px;
+  }
+
+  .debug-button,
+  .debug-close {
+    padding: 10px 12px;
+  }
+
+  .day-row {
+    padding: 11px 10px;
+  }
+
+  .dial-action {
+    padding: 12px 14px;
+  }
+}
+
+/* Honour the OS-level setting. Value-driven animation is snapped in JS (see
+   useAnimatedValue); this covers the CSS-driven motion. */
+@media (prefers-reduced-motion: reduce) {
+  .dial-breathing,
+  .dial-pulsing,
+  .log-spend-sheet {
+    animation: none !important;
+  }
+
+  .dial-button {
+    transition: none !important;
+  }
+}

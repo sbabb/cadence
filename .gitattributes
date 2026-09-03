@@ -1,0 +1,15 @@
+# Line endings are normalised to LF in the repository. This project gets
+# committed to from both Windows and Linux, and without this every file would
+# show up as wholly rewritten the moment the other machine touched it.
+* text=auto eol=lf
+
+# Binaries must never be line-ending mangled.
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.gif  binary
+*.ico  binary
+*.pdf  binary
+*.woff  binary
+*.woff2 binary
+*.riv  binary
