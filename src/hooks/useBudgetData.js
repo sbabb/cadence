@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { todayStr, compareDateStr } from '../utils/dateUtils.js'
+import { todayStr, compareDateStr, addDays } from '../utils/dateUtils.js'
+import { DEFAULT_THEME } from '../utils/themes.js'
 import {
   reconcilePeriod,
   buildPeriodSchedule,
@@ -7,8 +8,11 @@ import {
   findOverlappingPeriod
 } from '../utils/budgetEngine.js'
 
-const STORAGE_KEY = 'budgetHabitTracker.v1'
-const DEFAULT_SETTINGS = { cadence: 'manual' }
+// Exported so main.jsx can read the saved theme and paint it BEFORE React's
+// first render - see the note there about why that has to happen outside the
+// component tree.
+export const STORAGE_KEY = 'budgetHabitTracker.v1'
+const DEFAULT_SETTINGS = { cadence: 'manual', theme: DEFAULT_THEME }
 
 function loadData() {
   try {
@@ -42,17 +46,25 @@ function makePeriodId() {
 export default function useBudgetData() {
   const [data, setData] = useState(loadData)
   const [today, setToday] = useState(todayStr())
+  // A coarse ticking clock. The final day of a period counts down in hours
+  // rather than reporting "1 day", which needs the current time and not just
+  // the current date. Thirty seconds is plenty for a minutes-resolution
+  // display and costs nothing.
+  const [now, setNow] = useState(() => new Date())
 
   // Persist to localStorage any time the data changes.
   useEffect(() => {
     persistData(data)
   }, [data])
 
-  // Keep "today" accurate if the app is left open across midnight.
+  // Keep "today" accurate if the app is left open across midnight, and keep
+  // the clock moving for the final-day countdown. Both read the DEVICE's local
+  // date and time, so the app always agrees with the phone it's running on.
   useEffect(() => {
     const interval = setInterval(() => {
       const t = todayStr()
       setToday((prev) => (prev !== t ? t : prev))
+      setNow(new Date())
     }, 30000)
     return () => clearInterval(interval)
   }, [])
@@ -152,7 +164,10 @@ export default function useBudgetData() {
     } catch (err) {
       console.error('Failed to clear localStorage:', err)
     }
-    setData({ periods: [], settings: { ...DEFAULT_SETTINGS } })
+    // The theme survives a reset. It's a display preference, not budget data,
+    // and having the app change colour because you cleared your test entries
+    // would read as a bug.
+    setData((prev) => ({ periods: [], settings: { ...DEFAULT_SETTINGS, theme: prev.settings.theme } }))
   }, [])
 
   // Persists the user's optional pay-cadence preference (Settings screen).
@@ -160,6 +175,14 @@ export default function useBudgetData() {
   // never touches any existing period.
   const setCadence = useCallback((cadence) => {
     setData((prev) => ({ ...prev, settings: { ...prev.settings, cadence } }))
+  }, [])
+
+  // Which palette the app is wearing. Lives beside cadence in settings because
+  // it's the same kind of thing - a preference that outlives every period -
+  // and because it then rides along with the single localStorage write the
+  // rest of the data already does.
+  const setTheme = useCallback((theme) => {
+    setData((prev) => ({ ...prev, settings: { ...prev.settings, theme } }))
   }, [])
 
   // Edits the ACTIVE period's discretionary amount and/or end date
@@ -299,8 +322,22 @@ export default function useBudgetData() {
     return todayInfo.logged ? todayInfo.remainingAfter : todayInfo.remainingBefore
   }, [todayInfo])
 
+  // What the limit was on the previous day, so the dashboard can show whether
+  // today's figure moved. The limit is deliberately stable - small day-to-day
+  // variation vanishes at whole-dollar rounding - and without a marker for the
+  // days it DOES move, a correctly steady number reads as a broken one.
+  const previousDayLimit = useMemo(() => {
+    if (!currentPeriod || periodEnded) return null
+    const yesterday = addDays(today, -1)
+    if (compareDateStr(yesterday, currentPeriod.startDate) < 0) return null
+    const asOfYesterday = reconcilePeriod(currentPeriod, yesterday)
+    return asOfYesterday.todayInfo ? asOfYesterday.todayInfo.dailyLimit : null
+  }, [currentPeriod, periodEnded, today])
+
   return {
     today,
+    now,
+    previousDayLimit,
     periods,
     currentPeriod,
     reconciled,
@@ -310,6 +347,7 @@ export default function useBudgetData() {
     daysRemaining,
     currentRemaining,
     cadence: data.settings.cadence,
+    theme: data.settings.theme,
     startPeriod,
     startFirstPeriod,
     logSpendForDate,
@@ -317,6 +355,7 @@ export default function useBudgetData() {
     resetAllData,
     clearTodayLog,
     setCadence,
+    setTheme,
     updatePeriodDetails,
     abandonCurrentPeriod
   }

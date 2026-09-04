@@ -2,8 +2,18 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+    <!-- interactive-widget=resizes-content tells Chrome on Android to shrink
+         the LAYOUT viewport when the on-screen keyboard appears, instead of
+         leaving it full height and sliding the keyboard over the top. Without
+         it a `position: fixed; inset: 0` sheet anchors to a viewport that is
+         partly behind the keyboard, which is why the spend sheet's SET TOTAL
+         and CANCEL buttons had to be dragged into view.
+
+         maximum-scale is deliberately gone: pinch-zoom is an accessibility
+         feature and blocking it never fixed anything here. -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, interactive-widget=resizes-content" />
     <link rel="icon" href="data:," />
+    <!-- Kept in sync with the active theme's --bg at runtime (themes.js). -->
     <meta name="theme-color" content="#1a1b26" />
     <title>Cadence</title>
   </head>

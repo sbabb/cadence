@@ -1,9 +1,14 @@
 /* Cadence.
  *
- * Palette is Tokyo Night. Every color in the app comes from the block below -
- * nothing downstream picks its own hex - which is what keeps the whole surface
- * speaking one language, and is what would make a theme switcher a matter of
- * swapping this block rather than auditing the stylesheet.
+ * Every color in the app comes from the block below - nothing downstream picks
+ * its own hex - which is what keeps the whole surface speaking one language.
+ *
+ * The values here are Tokyo Night, and they are the DEFAULT, not the only set:
+ * src/utils/themes.js overwrites these same custom properties on
+ * documentElement to switch palettes. So this block is what the app looks like
+ * before any preference is read, and the shape every theme has to fill in.
+ * Anything new that needs a colour takes it from here; a literal hex added
+ * downstream is a colour that will be wrong in four themes out of five.
  *
  * The rules the design follows, so later additions stay consistent:
  *   - Sharp corners. No border radius anywhere.
@@ -24,7 +29,7 @@
 
   --text: #c0caf5;
   --text-mid: #787c99;
-  --text-dim: #565f89;
+  --text-dim: #636c97;
 
   --green: #9ece6a;
   --amber: #e0af68;
@@ -35,6 +40,13 @@
   --cyan: #7dcfff;
   --purple: #bb9af7;
   --orange: #ff9e64;
+
+  /* The over-budget track tint and the modal scrims. Both used to be literals
+     further down the file, which made them the two things a light theme
+     couldn't fix. */
+  --track-over: #3a2230;
+  --scrim: rgba(13, 14, 20, 0.8);
+  --scrim-strong: rgba(13, 14, 20, 0.88);
 
   --mono: 'JetBrains Mono', ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, monospace;
 }
@@ -62,7 +74,7 @@ body {
   background: var(--bg);
   color: var(--text);
   font-family: var(--mono);
-  font-size: 15px;
+  font-size: 17px;
   line-height: 1.45;
   -webkit-font-smoothing: antialiased;
 }
@@ -87,19 +99,33 @@ input, button, select, textarea {
   position: relative;
 }
 
+/* Tapping this returns to the dashboard from anywhere, the way a logo does on
+   a website. It's a real button so it's keyboard-reachable too. */
 .ascii-header {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--border);
   margin: 0 0 14px 0;
-  font-size: 13px;
+  font-family: inherit;
+  font-size: 15px;
   font-weight: 700;
   letter-spacing: 2px;
   color: var(--text);
-  border-bottom: 1px solid var(--border);
-  padding-bottom: 8px;
-  white-space: pre-wrap;
+  padding: 0 0 8px 0;
+  cursor: pointer;
+}
+
+.ascii-header:hover,
+.ascii-header:active {
+  color: var(--blue);
+  border-bottom-color: var(--border-bright);
 }
 
 .screen-title {
-  font-size: 18px;
+  font-size: 20px;
   font-weight: 700;
   letter-spacing: 1.5px;
   margin: 6px 0 14px 0;
@@ -115,7 +141,7 @@ input, button, select, textarea {
 .setup-message {
   margin: 0 0 4px 0;
   color: var(--amber);
-  font-size: 13px;
+  font-size: 15px;
 }
 
 .setup-form {
@@ -131,7 +157,7 @@ input, button, select, textarea {
 }
 
 .field-label {
-  font-size: 11px;
+  font-size: 13px;
   color: var(--text-dim);
   letter-spacing: 0.8px;
 }
@@ -141,7 +167,7 @@ input, button, select, textarea {
   color: var(--text);
   border: 1px solid var(--border);
   padding: 10px;
-  font-size: 15px;
+  font-size: 17px;
 }
 
 .field input[type='date']:focus {
@@ -168,7 +194,7 @@ input, button, select, textarea {
   color: var(--text-mid);
   border: 1px solid var(--border);
   padding: 0 12px;
-  font-size: 12px;
+  font-size: 14px;
   letter-spacing: 0.5px;
   white-space: nowrap;
   cursor: pointer;
@@ -200,7 +226,7 @@ input, button, select, textarea {
 }
 
 .dollar-sign {
-  font-size: 19px;
+  font-size: 21px;
   color: var(--text-dim);
   margin-right: 4px;
 }
@@ -211,20 +237,20 @@ input, button, select, textarea {
   background: transparent;
   border: none;
   color: var(--text);
-  font-size: 19px;
+  font-size: 21px;
   padding: 10px 0;
   outline: none;
 }
 
 .setup-hint {
   color: var(--text-mid);
-  font-size: 12px;
+  font-size: 14px;
   margin: 0;
 }
 
 .error-text {
   color: var(--red);
-  font-size: 12px;
+  font-size: 14px;
   margin: 0;
 }
 
@@ -233,7 +259,7 @@ input, button, select, textarea {
   color: var(--green);
   border: 1px solid var(--green);
   padding: 13px;
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 500;
   letter-spacing: 1.5px;
   cursor: pointer;
@@ -250,7 +276,7 @@ input, button, select, textarea {
   color: var(--text-dim);
   border: 1px solid var(--border);
   padding: 10px;
-  font-size: 12px;
+  font-size: 14px;
   letter-spacing: 1px;
   cursor: pointer;
 }
@@ -270,10 +296,10 @@ input, button, select, textarea {
 }
 
 .period-range {
-  font-size: 12px;
+  font-size: 14px;
   color: var(--text-dim);
   letter-spacing: 0.5px;
-  margin-bottom: 14px;
+  margin-bottom: 10px;
 }
 
 .stat-grid {
@@ -295,7 +321,7 @@ input, button, select, textarea {
 }
 
 .stat-label {
-  font-size: 9px;
+  font-size: 11px;
   color: var(--text-dim);
   letter-spacing: 0.8px;
   margin-bottom: 4px;
@@ -305,7 +331,7 @@ input, button, select, textarea {
 }
 
 .stat-value {
-  font-size: 18px;
+  font-size: 20px;
   font-weight: 700;
 }
 
@@ -314,101 +340,185 @@ input, button, select, textarea {
   color: var(--red);
 }
 
-/* ---------- Spend dial ---------- */
-
-.dial-section {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  margin-bottom: 16px;
+/* Only rendered on the days the limit actually moved. */
+.stat-delta {
+  font-size: 11px;
+  letter-spacing: 0.3px;
+  margin-top: 3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.dial-shell {
-  width: 100%;
-  max-width: 240px;
-  transform-origin: center center;
+.stat-delta-up {
+  color: var(--green);
 }
 
-.dial-breathing {
-  animation: dial-breathe calc(2600ms / var(--motion-speed, 1)) cubic-bezier(0.42, 0, 0.58, 1) infinite;
+.stat-delta-down {
+  color: var(--amber);
 }
 
-.dial-pulsing {
-  animation: dial-pulse calc(420ms / var(--motion-speed, 1)) cubic-bezier(0.34, 1.56, 0.64, 1) 1;
-}
-
-@keyframes dial-breathe {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.018); }
-}
-
-@keyframes dial-pulse {
-  0% { transform: scale(1); }
-  45% { transform: scale(1.05); }
-  100% { transform: scale(1); }
-}
-
-.dial-button {
-  position: relative;
-  display: block;
-  width: 100%;
-  aspect-ratio: 1 / 1;
-  background: transparent;
+/* The REMAINING box becomes a button on the final day, holding the
+   explanation that used to occupy a permanent banner. */
+.stat-box-tappable {
   border: none;
-  padding: 0;
+  font-family: inherit;
   cursor: pointer;
   color: inherit;
-  transition: transform calc(140ms / var(--motion-speed, 1)) cubic-bezier(0.4, 0, 1, 1);
-}
-
-.dial-svg {
-  display: block;
-  width: 100%;
-  height: 100%;
-}
-
-.dial-track {
-  stroke: var(--bg-elevated);
-}
-
-/* Constrained to the ring's interior rather than the button's full square, so
-   nothing inside can run out over the stroke. */
-.dial-center {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  pointer-events: none;
-  padding: 0 22%;
   text-align: center;
 }
 
-.dial-amount {
+.stat-box-tappable .stat-label {
+  color: var(--amber);
+}
+
+/* ---------- Spend bar ---------- */
+
+.bar-section {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  margin-bottom: 14px;
+}
+
+.bar-shell {
+  width: 100%;
+}
+
+.bar-pulsing {
+  animation: bar-pulse calc(420ms / var(--motion-speed, 1)) cubic-bezier(0.34, 1.56, 0.64, 1) 1;
+}
+
+@keyframes bar-pulse {
+  0% { transform: scale(1); }
+  45% { transform: scale(1.02); }
+  100% { transform: scale(1); }
+}
+
+.bar-button {
+  display: block;
+  width: 100%;
+  background: transparent;
+  border: none;
+  padding: 6px 0 2px 0;
+  cursor: pointer;
+  color: inherit;
+  text-align: center;
+  transition: transform calc(140ms / var(--motion-speed, 1)) cubic-bezier(0.4, 0, 1, 1);
+}
+
+/* Holds the figure, the label, and the particle field behind them. Its height
+   is what bounds the particles' travel: they rise the height of this block and
+   have faded out by the top of it, so nothing ever needs clipping and nothing
+   drifts up into the period range above. */
+.bar-readout {
+  position: relative;
+}
+
+.bar-particles {
+  position: absolute;
+  /* Reaches 10px below the readout, which is exactly the gap between the
+     label's baseline box and the top of the track. Without it the particles
+     began in mid-air above the bar instead of appearing to leave it. */
+  inset: 0 0 -10px 0;
+  pointer-events: none;
+  /* Behind the text but still inside the button's own stacking context, so it
+     can never end up above the track below it. */
+  z-index: 0;
+}
+
+/* Sharp, unrounded, 2-3px. A soft round dot would be the one piece of the UI
+   apologising for itself - everything else here has corners. */
+.bar-particle {
+  position: absolute;
+  bottom: 0;
+  display: block;
+  background: var(--bar-color, var(--green));
+  opacity: 0;
+  animation: bar-particle-rise calc(var(--dur) / var(--motion-speed, 1))
+    linear calc(var(--delay) / var(--motion-speed, 1)) infinite;
+}
+
+/* Fades in quickly out of the bar, thins out through the middle, and is gone
+   by the time it reaches the date - which is the point. It's texture, and
+   texture that competes with a number for attention has stopped being
+   texture. */
+@keyframes bar-particle-rise {
+  0% {
+    transform: translateY(2px);
+    opacity: 0;
+  }
+  18% {
+    opacity: var(--peak, 0.28);
+  }
+  60% {
+    opacity: calc(var(--peak, 0.28) * 0.55);
+  }
+  100% {
+    transform: translateY(var(--rise, -40px));
+    opacity: 0;
+  }
+}
+
+.bar-figure {
+  position: relative;
+  z-index: 1;
   font-size: 38px;
   font-weight: 700;
   letter-spacing: -1px;
-  line-height: 1.1;
+  line-height: 1.05;
 }
 
-.dial-label {
-  font-size: 11px;
+.bar-label {
+  position: relative;
+  z-index: 1;
+  font-size: 13px;
   color: var(--text-dim);
   letter-spacing: 1px;
-  margin-top: 2px;
-  line-height: 1.4;
+  margin-top: 1px;
+  margin-bottom: 10px;
 }
 
-/* The date of a non-today day gets its own line - a full weekday-plus-date
-   alongside the status word is wider than the ring's interior. */
-.dial-label-date {
-  display: block;
+.bar-label-date {
   color: var(--blue);
+  margin-left: 6px;
 }
 
-.dial-hint {
-  font-size: 10px;
+.bar-track {
+  position: relative;
+  width: 100%;
+  height: 12px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  overflow: hidden;
+  transition: background 240ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Tinting the track makes the over-budget state unmistakable even when the
+   overage itself is only a sliver of fill. */
+.bar-track-over {
+  background: var(--track-over);
+  border-color: var(--red);
+}
+
+/* Width and colour are driven from JavaScript so the value is available for
+   the debug readout, so there is deliberately no CSS transition here. */
+.bar-fill {
+  height: 100%;
+  min-width: 2px;
+}
+
+.bar-breathing {
+  animation: bar-breathe calc(2600ms / var(--motion-speed, 1)) cubic-bezier(0.42, 0, 0.58, 1) infinite;
+}
+
+@keyframes bar-breathe {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.55; }
+}
+
+.bar-hint {
+  font-size: 12px;
   color: var(--text-dim);
   letter-spacing: 1px;
   margin-top: 8px;
@@ -419,7 +529,7 @@ input, button, select, textarea {
    time, because until then it has nothing useful to say. */
 .dial-over-note {
   margin: 10px 0 0 0;
-  font-size: 11px;
+  font-size: 13px;
   color: var(--text-mid);
   letter-spacing: 0.5px;
   text-align: center;
@@ -440,7 +550,7 @@ input, button, select, textarea {
   background: transparent;
   border: none;
   color: var(--text-dim);
-  font-size: 11px;
+  font-size: 13px;
   letter-spacing: 1px;
   text-align: center;
   padding: 10px 0 0 0;
@@ -456,20 +566,40 @@ input, button, select, textarea {
    large-looking) rolled-over budget shown here is the ACTUAL total available
    today, distinct from the steady baseline the stat box above reverts to
    showing on that same day. */
+/* Always rendered, collapsed until asked for, so it can transition open
+   rather than snapping into existence. Height can't animate to `auto`, hence
+   the max-height - generous enough for the text at any width. */
 .last-day-note {
-  border: 1px solid var(--amber);
+  border: 0 solid var(--amber);
   color: var(--amber);
   background: var(--bg-panel);
-  padding: 9px 12px;
-  font-size: 11px;
+  font-size: 13px;
   line-height: 1.5;
   letter-spacing: 0.3px;
   text-align: center;
+  max-height: 0;
+  opacity: 0;
+  overflow: hidden;
+  padding: 0 12px;
+  margin: 0;
+  transition:
+    max-height 340ms cubic-bezier(0.16, 1, 0.3, 1),
+    opacity 220ms cubic-bezier(0.16, 1, 0.3, 1),
+    padding 340ms cubic-bezier(0.16, 1, 0.3, 1),
+    margin 340ms cubic-bezier(0.16, 1, 0.3, 1),
+    border-width 340ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.last-day-note-open {
+  border-width: 1px;
+  max-height: 220px;
+  opacity: 1;
+  padding: 9px 12px;
   margin: 0 0 14px 0;
 }
 
 .last-day-note strong {
-  font-size: 14px;
+  font-size: 16px;
 }
 
 /* ---------- Day list ---------- */
@@ -483,7 +613,7 @@ input, button, select, textarea {
   grid-template-columns: 1.4fr 1fr 1fr;
   gap: 4px;
   padding: 7px 10px;
-  font-size: 10px;
+  font-size: 12px;
   color: var(--text-dim);
   letter-spacing: 0.8px;
   background: var(--bg-panel);
@@ -495,7 +625,7 @@ input, button, select, textarea {
   grid-template-columns: 1.4fr 1fr 1fr;
   gap: 4px;
   padding: 7px 10px;
-  font-size: 13px;
+  font-size: 15px;
   border-bottom: 1px solid var(--border);
   border-left: 2px solid transparent;
 }
@@ -555,6 +685,35 @@ input, button, select, textarea {
   text-align: right;
 }
 
+/* Drawn as a field rather than plain text, because it's the only part of the
+   row that opens the sheet and nothing else would say so. The negative margin
+   lets the tap target fill the row's full height while the visible box stays
+   the size of the figure. */
+.day-row-spent-editable {
+  background: transparent;
+  border: none;
+  /* Very dim by default: one underline is a hint, nine stacked down the list
+     is a texture. The selected row's is bright, so the affordance is loudest
+     exactly where you're looking. */
+  border-bottom: 1px dashed var(--border);
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  padding: 8px 2px;
+  margin: -8px 0;
+  width: 100%;
+}
+
+.day-row-spent-editable:hover,
+.day-row-spent-editable:active {
+  border-bottom-color: currentColor;
+  background: var(--bg-elevated);
+}
+
+.day-row-selected .day-row-spent-editable {
+  border-bottom-color: var(--blue);
+}
+
 /* ---------- Dev tools (temporary - remove before deployment) ---------- */
 
 .dev-reset-section {
@@ -575,7 +734,7 @@ input, button, select, textarea {
   border: 1px dashed var(--text-dim);
   color: var(--text-dim);
   padding: 7px 12px;
-  font-size: 10px;
+  font-size: 12px;
   letter-spacing: 1px;
   cursor: pointer;
 }
@@ -617,7 +776,7 @@ input, button, select, textarea {
 }
 
 .debug-title {
-  font-size: 11px;
+  font-size: 13px;
   letter-spacing: 1.5px;
   color: var(--purple);
   margin: 0;
@@ -627,7 +786,7 @@ input, button, select, textarea {
   background: transparent;
   border: 1px solid var(--border);
   color: var(--text-dim);
-  font-size: 11px;
+  font-size: 13px;
   padding: 4px 9px;
   cursor: pointer;
   letter-spacing: 1px;
@@ -647,7 +806,7 @@ input, button, select, textarea {
 }
 
 .debug-block-title {
-  font-size: 9px;
+  font-size: 11px;
   letter-spacing: 1.2px;
   color: var(--text-dim);
   margin: 0;
@@ -666,7 +825,7 @@ input, button, select, textarea {
 }
 
 .debug-scrub-value {
-  font-size: 12px;
+  font-size: 14px;
   color: var(--text);
   min-width: 74px;
   text-align: right;
@@ -683,7 +842,7 @@ input, button, select, textarea {
   background: transparent;
   border: 1px solid var(--border-bright);
   color: var(--text-mid);
-  font-size: 10px;
+  font-size: 12px;
   letter-spacing: 0.8px;
   padding: 6px 9px;
   cursor: pointer;
@@ -707,7 +866,7 @@ input, button, select, textarea {
   display: flex;
   flex-direction: column;
   gap: 3px;
-  font-size: 10px;
+  font-size: 12px;
 }
 
 .debug-readout-row {
@@ -745,7 +904,7 @@ input, button, select, textarea {
 .confirm-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(13, 14, 20, 0.88);
+  background: var(--scrim-strong);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -770,7 +929,7 @@ input, button, select, textarea {
 
 .confirm-message {
   margin: 0;
-  font-size: 14px;
+  font-size: 16px;
   line-height: 1.5;
   color: var(--text);
 }
@@ -795,7 +954,7 @@ input, button, select, textarea {
   color: var(--green);
   border: 1px solid var(--green);
   padding: 11px;
-  font-size: 13px;
+  font-size: 15px;
   letter-spacing: 1px;
   cursor: pointer;
 }
@@ -822,7 +981,7 @@ input, button, select, textarea {
 .log-spend-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(13, 14, 20, 0.8);
+  background: var(--scrim);
   display: flex;
   align-items: flex-end;
   justify-content: center;
@@ -838,7 +997,19 @@ input, button, select, textarea {
   display: flex;
   flex-direction: column;
   gap: 12px;
+  /* Belt and braces behind the two viewport fixes: however little room the
+     keyboard leaves, the sheet stays inside it and scrolls rather than
+     pushing its own buttons off the bottom of the screen. */
+  max-height: 100%;
+  overflow-y: auto;
   animation: slide-up 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* The generous bottom padding is there to clear a phone's home indicator.
+   With the keyboard up, the keyboard is what's below the sheet - so the gap
+   is dead space in the one situation where vertical room is scarcest. */
+.log-spend-sheet-lifted {
+  padding-bottom: 14px;
 }
 
 @keyframes slide-up {
@@ -847,13 +1018,30 @@ input, button, select, textarea {
 }
 
 .log-spend-title {
-  font-size: 15px;
+  font-size: 17px;
   letter-spacing: 1px;
 }
 
-.log-spend-limit {
-  font-size: 12px;
+.log-spend-context {
+  font-size: 13px;
   color: var(--text-dim);
+  letter-spacing: 0.5px;
+}
+
+/* The day's running total, which is what makes ADD versus SET TOTAL
+   self-explanatory. */
+.log-spend-logged {
+  color: var(--text);
+}
+
+.log-spend-secondary {
+  display: flex;
+  gap: 8px;
+}
+
+.log-spend-secondary .cancel-button {
+  flex: 1;
+  text-align: center;
 }
 
 .log-spend-input-row {
@@ -890,12 +1078,16 @@ input, button, select, textarea {
   touch-action: pan-y;
 }
 
+/* One row, always. It used to wrap the moment the touch-sized buttons made it
+   too wide, dropping TRENDS and SETTINGS onto a second line and pushing the
+   whole dashboard down. Nothing wraps now; the indicator gives up its width
+   first, since "PERIOD 1 OF 1" is the least important thing in the row. */
 .pager-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 8px;
+  flex-wrap: nowrap;
+  gap: 6px;
   margin-bottom: 10px;
   min-height: 26px;
 }
@@ -904,12 +1096,14 @@ input, button, select, textarea {
   display: flex;
   align-items: center;
   gap: 6px;
+  flex: 0 0 auto;
 }
 
 .pager-nav {
   display: flex;
   align-items: center;
   gap: 6px;
+  min-width: 0;
 }
 
 .pager-arrow {
@@ -919,7 +1113,7 @@ input, button, select, textarea {
   width: 24px;
   height: 24px;
   line-height: 1;
-  font-size: 14px;
+  font-size: 16px;
   cursor: pointer;
 }
 
@@ -936,10 +1130,12 @@ input, button, select, textarea {
 }
 
 .pager-indicator {
-  font-size: 10px;
+  font-size: 12px;
   color: var(--text-dim);
-  letter-spacing: 0.8px;
+  letter-spacing: 0.5px;
   white-space: nowrap;
+  min-width: 0;
+  padding: 0 2px;
 }
 
 .trends-button,
@@ -948,7 +1144,7 @@ input, button, select, textarea {
   color: var(--text-mid);
   border: 1px solid var(--border);
   padding: 5px 9px;
-  font-size: 10px;
+  font-size: 12px;
   letter-spacing: 1px;
   cursor: pointer;
 }
@@ -972,7 +1168,7 @@ input, button, select, textarea {
 .past-period-badge {
   display: inline-block;
   align-self: flex-start;
-  font-size: 10px;
+  font-size: 12px;
   letter-spacing: 1px;
   color: var(--text-dim);
   border: 1px solid var(--border);
@@ -989,7 +1185,7 @@ input, button, select, textarea {
 
 .summary-range {
   color: var(--text-dim);
-  font-size: 12px;
+  font-size: 14px;
   margin: 0 0 16px 0;
 }
 
@@ -1004,7 +1200,7 @@ input, button, select, textarea {
   display: flex;
   justify-content: space-between;
   padding: 9px 12px;
-  font-size: 13px;
+  font-size: 15px;
   border-bottom: 1px solid var(--border);
 }
 
@@ -1015,7 +1211,7 @@ input, button, select, textarea {
 .summary-stat-label {
   color: var(--text-dim);
   letter-spacing: 0.5px;
-  font-size: 11px;
+  font-size: 13px;
 }
 
 .summary-stat-value {
@@ -1027,7 +1223,7 @@ input, button, select, textarea {
   padding: 12px;
   border: 1px solid;
   letter-spacing: 1px;
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 500;
   margin-bottom: 20px;
 }
@@ -1055,12 +1251,12 @@ input, button, select, textarea {
 }
 
 .lapsed-message {
-  font-size: 15px;
+  font-size: 17px;
   margin: 0 0 10px 0;
 }
 
 .lapsed-submessage {
-  font-size: 12px;
+  font-size: 14px;
   color: var(--text-dim);
   margin: 0 0 20px 0;
 }
@@ -1074,14 +1270,14 @@ input, button, select, textarea {
 }
 
 .trends-subtitle {
-  font-size: 12px;
+  font-size: 14px;
   color: var(--text-dim);
   margin: 0 0 16px 0;
 }
 
 .trends-empty {
   color: var(--text-dim);
-  font-size: 13px;
+  font-size: 15px;
 }
 
 .trends-chart {
@@ -1103,7 +1299,7 @@ input, button, select, textarea {
 }
 
 .trend-bar-pct {
-  font-size: 9px;
+  font-size: 11px;
   color: var(--text-dim);
   margin-bottom: 4px;
   white-space: nowrap;
@@ -1129,7 +1325,7 @@ input, button, select, textarea {
 .trend-bar-over { background: var(--red); }
 
 .trend-column-label {
-  font-size: 9px;
+  font-size: 11px;
   color: var(--text-dim);
   margin-top: 6px;
   white-space: nowrap;
@@ -1148,7 +1344,7 @@ input, button, select, textarea {
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 10px;
+  font-size: 12px;
   color: var(--text-dim);
   letter-spacing: 0.5px;
 }
@@ -1176,13 +1372,13 @@ input, button, select, textarea {
 }
 
 .settings-section-title {
-  font-size: 13px;
+  font-size: 15px;
   letter-spacing: 1.2px;
   margin: 0 0 6px 0;
 }
 
 .settings-section-hint {
-  font-size: 11px;
+  font-size: 13px;
   color: var(--text-dim);
   margin: 0 0 14px 0;
   line-height: 1.5;
@@ -1190,7 +1386,7 @@ input, button, select, textarea {
 
 .settings-saved-text {
   color: var(--green);
-  font-size: 12px;
+  font-size: 14px;
   margin: 0;
 }
 
@@ -1205,7 +1401,7 @@ input, button, select, textarea {
   color: var(--text-mid);
   border: 1px solid var(--border);
   padding: 11px;
-  font-size: 12px;
+  font-size: 14px;
   letter-spacing: 0.5px;
   text-align: left;
   cursor: pointer;
@@ -1228,7 +1424,7 @@ input, button, select, textarea {
   color: var(--red);
   border: 1px solid var(--red);
   padding: 11px;
-  font-size: 12px;
+  font-size: 14px;
   letter-spacing: 1px;
   cursor: pointer;
 }
@@ -1253,7 +1449,7 @@ input, button, select, textarea {
   background: transparent;
   border: 1px solid var(--border);
   color: var(--text-dim);
-  font-size: 10px;
+  font-size: 12px;
   letter-spacing: 1px;
   padding: 7px 11px;
   cursor: pointer;
@@ -1266,7 +1462,7 @@ input, button, select, textarea {
 }
 
 .selection-note {
-  font-size: 11px;
+  font-size: 13px;
   color: var(--blue);
   letter-spacing: 0.3px;
   text-align: center;
@@ -1280,13 +1476,13 @@ input, button, select, textarea {
 }
 
 .onboarding-intro {
-  font-size: 12px;
+  font-size: 14px;
   color: var(--text-dim);
   margin: 0 0 16px 0;
 }
 
 .field-hint {
-  font-size: 10px;
+  font-size: 12px;
   color: var(--text-dim);
   line-height: 1.5;
 }
@@ -1302,18 +1498,92 @@ input, button, select, textarea {
 }
 
 .cadence-option-label {
-  font-size: 12px;
+  font-size: 14px;
   letter-spacing: 0.5px;
 }
 
 .cadence-option-detail {
-  font-size: 10px;
+  font-size: 12px;
   color: var(--text-dim);
   letter-spacing: 0.3px;
 }
 
 .cadence-option-selected .cadence-option-detail {
   color: var(--text-mid);
+}
+
+/* ---------- Theme picker ---------- */
+
+.theme-options {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* Same chrome as a cadence option, so the two lists read as the same kind of
+   choice, plus a preview strip pushed to the right edge. */
+.theme-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: transparent;
+  color: var(--text-mid);
+  border: 1px solid var(--border);
+  padding: 10px 11px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.theme-option:hover,
+.theme-option:active {
+  border-color: var(--border-bright);
+  color: var(--text);
+}
+
+.theme-option-selected {
+  background: var(--bg-elevated);
+  color: var(--text);
+  border-color: var(--blue);
+}
+
+.theme-option-text {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.theme-option-label {
+  font-size: 14px;
+  letter-spacing: 0.5px;
+}
+
+.theme-option-detail {
+  font-size: 12px;
+  color: var(--text-dim);
+  letter-spacing: 0.3px;
+}
+
+.theme-option-selected .theme-option-detail {
+  color: var(--text-mid);
+}
+
+/* A window rather than five loose chips: the border and the ground behind the
+   colours are that theme's too, which is most of what tells Latte apart from
+   Mocha at a glance. */
+.theme-swatches {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 3px;
+  padding: 4px;
+  border: 1px solid var(--border);
+}
+
+.theme-swatch {
+  display: block;
+  width: 9px;
+  height: 20px;
 }
 
 .button-icon {
@@ -1332,7 +1602,7 @@ input, button, select, textarea {
   .pager-arrow {
     width: 40px;
     height: 40px;
-    font-size: 18px;
+    font-size: 20px;
   }
 
   .trends-button,
@@ -1358,6 +1628,10 @@ input, button, select, textarea {
     padding: 15px;
   }
 
+  .theme-option {
+    padding: 14px 15px;
+  }
+
   .date-picker-button {
     padding: 0 16px;
   }
@@ -1374,18 +1648,32 @@ input, button, select, textarea {
   .dial-action {
     padding: 12px 14px;
   }
+
+  .day-row-spent-editable {
+    padding: 11px 4px;
+    margin: -11px 0;
+  }
 }
 
 /* Honour the OS-level setting. Value-driven animation is snapped in JS (see
    useAnimatedValue); this covers the CSS-driven motion. */
 @media (prefers-reduced-motion: reduce) {
-  .dial-breathing,
-  .dial-pulsing,
+  .bar-breathing,
+  .bar-pulsing,
+  .bar-particle,
   .log-spend-sheet {
     animation: none !important;
   }
 
-  .dial-button {
+  /* The particles are pure decoration and their whole existence is movement,
+     so with motion off they are removed rather than frozen mid-rise. */
+  .bar-particles {
+    display: none;
+  }
+
+  .bar-button,
+  .bar-track,
+  .last-day-note {
     transition: none !important;
   }
 }

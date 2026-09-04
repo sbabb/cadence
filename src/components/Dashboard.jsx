@@ -1,20 +1,19 @@
 import { useEffect, useMemo, useState } from 'react'
-import { formatDisplayDate, formatDisplayDateWithDay } from '../utils/dateUtils.js'
+import { formatDisplayDate, formatDisplayDateWithDay, formatTimeRemaining } from '../utils/dateUtils.js'
 import { formatMoney } from '../utils/format.js'
 import { projectNextDayLimit } from '../utils/budgetEngine.js'
 import ConfirmDialog from './ConfirmDialog.jsx'
 import DayList from './DayList.jsx'
-import SpendDial from './SpendDial.jsx'
+import SpendBar from './SpendBar.jsx'
 import DialDebugPanel from './DialDebugPanel.jsx'
 
 // The ACTIVE period's view - the only page in the swipeable pager where
 // anything is editable. Historical periods render through PastPeriodView
 // instead, which is read-only and has none of the dial/dev-tool machinery.
 //
-// The dial follows a SELECTED day rather than being hardwired to today. It
-// starts on today, and tapping any past row moves it there, so a forgotten day
-// gets filled in through the same control with the same feedback as today.
-// The day list is a picker; the dial is the single place anything is edited.
+// The bar follows a SELECTED day rather than being hardwired to today. It
+// starts on today; tapping any past row moves it there so you can look at that
+// day, and tapping that row's SPENT figure opens its sheet.
 export default function Dashboard({
   period,
   today,
@@ -22,14 +21,17 @@ export default function Dashboard({
   schedule,
   daysRemaining,
   currentRemaining,
+  now,
+  previousDayLimit,
   onLogForDate,
-  onEditTotalForDate,
+  homeNonce,
   onResetAll,
   onClearTodayLog,
   onTriggerSummary
 }) {
   const [selectedDate, setSelectedDate] = useState(today)
   const [resetConfirmOpen, setResetConfirmOpen] = useState(false)
+  const [lastDayNoteOpen, setLastDayNoteOpen] = useState(false)
 
   // Snap back to today if the day rolls over while the app is open, or if the
   // period changes underneath us - a stale selection would otherwise point at
@@ -37,6 +39,16 @@ export default function Dashboard({
   useEffect(() => {
     setSelectedDate(today)
   }, [today, period.id])
+
+  // Tapping "> CADENCE" in the header brings you home, which includes putting
+  // the bar back on today rather than leaving it parked on whichever day you
+  // were inspecting.
+  useEffect(() => {
+    if (homeNonce === undefined) return
+    setSelectedDate(today)
+    setLastDayNoteOpen(false)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [homeNonce])
 
   const selectedRow = schedule.find((row) => row.date === selectedDate) || null
   const isTodaySelected = selectedDate === today
@@ -58,6 +70,17 @@ export default function Dashboard({
   // rolled-over total gets its own explicit line so neither number is lost.
   const isLastDay = Boolean(todayInfo) && today === period.endDate
   const displayedDailyLimit = isLastDay ? todayInfo.baselineDailyLimit : todayLimit
+
+  // Whether the limit actually moved since yesterday. It's designed to hold
+  // steady - a few dollars of daily variance spread over the remaining days
+  // rounds away to nothing - but an unchanging number gives no sign it's alive,
+  // so the days it DOES move are marked. Suppressed on the last day, where the
+  // box shows a static baseline that has nothing to compare against.
+  const limitDelta = useMemo(() => {
+    if (isLastDay || previousDayLimit === null || todayLimit === null) return null
+    const delta = todayLimit - previousDayLimit
+    return delta === 0 ? null : delta
+  }, [isLastDay, previousDayLimit, todayLimit])
 
   // ---- dev-only dial debugging -----------------------------------------
   // Remove this block, the panel import, and the DEV button below together.
@@ -109,6 +132,14 @@ export default function Dashboard({
     dialLimit
   ])
 
+  // Looking at a day and editing it are separate now. Selecting moves the bar;
+  // the SPENT figure opens the sheet. Editing still selects first, so the bar
+  // is already showing the right day when the sheet closes.
+  const handleEditDay = (date) => {
+    setSelectedDate(date)
+    onLogForDate(date)
+  }
+
   const handleResetConfirmed = () => {
     setResetConfirmOpen(false)
     onResetAll()
@@ -120,8 +151,8 @@ export default function Dashboard({
         {formatDisplayDateWithDay(period.startDate)} -&gt; {formatDisplayDateWithDay(period.endDate)}
       </div>
 
-      <div className="dial-section">
-        <SpendDial
+      <div className="bar-section">
+        <SpendBar
           spent={dialSpent}
           limit={dialLimit}
           logged={dialLogged}
@@ -137,48 +168,65 @@ export default function Dashboard({
           </p>
         )}
 
-        <div className="dial-actions">
-          {!isTodaySelected && (
+        {!isTodaySelected && (
+          <div className="dial-actions">
             <button type="button" className="dial-action" onClick={() => setSelectedDate(today)}>
               ‹ BACK TO TODAY
             </button>
-          )}
-          {selectedLogged && (
-            <button
-              type="button"
-              className="dial-action"
-              onClick={() => onEditTotalForDate(selectedDate)}
-            >
-              EDIT TOTAL
-            </button>
-          )}
-        </div>
+          </div>
+        )}
       </div>
 
       <div className="stat-grid">
         <div className="stat-box">
-          <div className="stat-label">DAYS REMAINING</div>
-          <div className="stat-value">{daysRemaining}</div>
+          <div className="stat-label">{isLastDay ? 'TIME LEFT' : 'DAYS REMAINING'}</div>
+          <div className="stat-value">
+            {isLastDay ? formatTimeRemaining(now) : daysRemaining}
+          </div>
         </div>
         <div className="stat-box">
           <div className="stat-label">DAILY LIMIT TODAY</div>
           <div className={`stat-value ${displayedDailyLimit < 0 ? 'negative' : ''}`}>
             {formatMoney(displayedDailyLimit)}
           </div>
+          {limitDelta !== null && (
+            <div className={`stat-delta ${limitDelta > 0 ? 'stat-delta-up' : 'stat-delta-down'}`}>
+              {limitDelta > 0 ? '▲' : '▼'}
+              {formatMoney(Math.abs(limitDelta))} vs yesterday
+            </div>
+          )}
         </div>
-        <div className="stat-box">
-          <div className="stat-label">REMAINING</div>
-          <div className={`stat-value ${currentRemaining < 0 ? 'negative' : ''}`}>
-            {formatMoney(currentRemaining)}
+        {isLastDay ? (
+          <button
+            type="button"
+            className="stat-box stat-box-tappable"
+            onClick={() => setLastDayNoteOpen((open) => !open)}
+            aria-expanded={lastDayNoteOpen}
+          >
+            <div className="stat-label">REMAINING ✳</div>
+            <div className={`stat-value ${currentRemaining < 0 ? 'negative' : ''}`}>
+              {formatMoney(currentRemaining)}
+            </div>
+          </button>
+        ) : (
+          <div className="stat-box">
+            <div className="stat-label">REMAINING</div>
+            <div className={`stat-value ${currentRemaining < 0 ? 'negative' : ''}`}>
+              {formatMoney(currentRemaining)}
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
+      {/* The final day's explanation is folded behind the REMAINING figure it
+          describes, rather than sitting permanently in a banner - it's the same
+          information, but it stops costing vertical space on the one day the
+          dashboard has the most to say. */}
       {isLastDay && (
-        <p className="last-day-note">
-          Last day of the period - every rolled-over dollar is available today.
-          <br />
-          TOTAL AVAILABLE TODAY: <strong>{formatMoney(todayLimit)}</strong>
+        <p className={`last-day-note ${lastDayNoteOpen ? 'last-day-note-open' : ''}`}>
+          Last day of the period - every rolled-over dollar is available today, so
+          REMAINING is what you have rather than a running balance. The daily limit
+          beside it is your usual steady target, kept for reference.
         </p>
       )}
 
@@ -193,6 +241,7 @@ export default function Dashboard({
         editable
         selectedDate={selectedDate}
         onSelectDay={setSelectedDate}
+        onEditDay={handleEditDay}
       />
 
       <div className="dev-reset-section">

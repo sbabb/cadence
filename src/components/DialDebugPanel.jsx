@@ -1,11 +1,12 @@
 import { formatMoney } from '../utils/format.js'
-import { rampHex, RAMP_STOPS } from '../utils/color.js'
+import { rampHex, rampStops } from '../utils/color.js'
 import { MOTION, formatEasing } from '../utils/motion.js'
+import useThemeColors from '../hooks/useThemeColors.js'
 
 // DEV TOOL. A spec sheet you can watch.
 //
-// The scrubber does for the dial what dragging a playhead does in an animation
-// editor: it drives the ring through its entire range - including out past the
+// The scrubber does for the bar what dragging a playhead does in an animation
+// editor: it drives the fill through its entire range - including out past the
 // limit into overage - without needing to log fake spends to get there. The
 // trigger buttons fire each time-based moment on demand, and the speed control
 // slows everything down enough to actually see a curve resolve.
@@ -46,7 +47,13 @@ export default function DialDebugPanel({
   const spent = limit * fraction
   const remaining = limit - spent
   const isOver = spent > limit
-  const hex = rampHex(fraction)
+
+  // Read from the same context the bar reads, so the hex printed here is
+  // provably the hex on screen - including after a theme change, which is
+  // exactly the case where a separately-derived copy would drift.
+  const rampColors = useThemeColors()
+  const hex = rampHex(fraction, rampColors)
+  const stops = rampStops(rampColors)
 
   const scaled = (ms) => Math.round(ms / speed)
 
@@ -61,7 +68,7 @@ export default function DialDebugPanel({
         </div>
 
         <div className="debug-block">
-          <p className="debug-block-title">SCRUB — DRIVES THE DIAL WITHOUT LOGGING ANYTHING</p>
+          <p className="debug-block-title">SCRUB — DRIVES THE BAR WITHOUT LOGGING ANYTHING</p>
           <div className="debug-scrub-row">
             <input
               type="range"
@@ -105,21 +112,21 @@ export default function DialDebugPanel({
               </span>
             </div>
             <div className="debug-readout-row">
-              <span className="debug-readout-key">dial shows</span>
+              <span className="debug-readout-key">bar shows</span>
               <span className="debug-readout-value">
                 {isOver ? `${formatMoney(spent - limit)} over` : `${formatMoney(remaining)} remaining`}
               </span>
             </div>
             <div className="debug-readout-row">
-              <span className="debug-readout-key">arc</span>
+              <span className="debug-readout-key">fill</span>
               <span className="debug-readout-value">
                 {isOver
-                  ? `${Math.round(Math.min(1, (spent - limit) / limit) * 100)}% counter-clockwise`
-                  : `${Math.round(Math.max(0, 1 - fraction) * 100)}% clockwise`}
+                  ? `${Math.round(Math.min(1, (spent - limit) / limit) * 100)}% overage`
+                  : `${Math.round(Math.max(0, 1 - fraction) * 100)}% remaining`}
               </span>
             </div>
             <div className="debug-readout-row">
-              <span className="debug-readout-key">ring color</span>
+              <span className="debug-readout-key">bar color</span>
               <span className="debug-readout-value">
                 <span className="debug-swatch-row">
                   <span className="debug-swatch" style={{ background: hex }} />
@@ -192,7 +199,7 @@ export default function DialDebugPanel({
         <div className="debug-block">
           <p className="debug-block-title">COLOR RAMP STOPS — OKLCH INTERPOLATED, SHORTEST HUE PATH</p>
           <div className="debug-readout">
-            {RAMP_STOPS.map((stop) => (
+            {stops.map((stop) => (
               <div className="debug-readout-row" key={`${stop.at}-${stop.label}`}>
                 <span className="debug-readout-key">{Math.round(stop.at * 100)}% spent</span>
                 <span className="debug-readout-value">

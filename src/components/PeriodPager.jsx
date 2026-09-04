@@ -24,8 +24,10 @@ export default function PeriodPager({
   activeSchedule,
   activeDaysRemaining,
   activeCurrentRemaining,
+  now,
+  previousDayLimit,
   onLogForDate,
-  onEditTotalForDate,
+  homeNonce,
   onResetAll,
   onClearTodayLog,
   onTriggerSummary
@@ -94,8 +96,12 @@ export default function PeriodPager({
           >
             ‹
           </button>
+          {/* Deliberately terse. "PERIOD 1 OF 1" is wider than the row can
+              spare once TRENDS and SETTINGS are touch-sized, and letting it
+              ellipsis away to "PERIOD 1 ..." was worse than shortening it
+              honestly. Flanked by arrows, "1 / 1" is unambiguous. */}
           <span className="pager-indicator">
-            PERIOD {viewIndex + 1} OF {periods.length}
+            {viewIndex + 1} / {periods.length}
           </span>
           <button
             type="button"
@@ -128,8 +134,10 @@ export default function PeriodPager({
           schedule={activeSchedule}
           daysRemaining={activeDaysRemaining}
           currentRemaining={activeCurrentRemaining}
+          now={now}
+          previousDayLimit={previousDayLimit}
           onLogForDate={onLogForDate}
-          onEditTotalForDate={onEditTotalForDate}
+          homeNonce={homeNonce}
           onResetAll={onResetAll}
           onClearTodayLog={onClearTodayLog}
           onTriggerSummary={onTriggerSummary}

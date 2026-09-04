@@ -65,6 +65,27 @@ export function formatDisplayDateWithDay(dateStr) {
   return `${DAY_NAMES[dow]} ${formatDisplayDate(dateStr)}`
 }
 
+// Milliseconds from `now` until the next local midnight. Uses the device's own
+// clock and timezone, the same as todayStr(), so the two can never disagree
+// about when the day ends.
+export function msUntilLocalMidnight(now = new Date()) {
+  const midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 0, 0)
+  return Math.max(0, midnight.getTime() - now.getTime())
+}
+
+// "8h 20m" / "45m" / "<1m". Used on a period's final day, where reporting "1
+// day remaining" at nine in the evening is technically true and completely
+// misleading - what's left is hours, and it should say so.
+export function formatTimeRemaining(now = new Date()) {
+  const ms = msUntilLocalMidnight(now)
+  const totalMinutes = Math.floor(ms / 60000)
+  if (totalMinutes < 1) return '<1m'
+  const hours = Math.floor(totalMinutes / 60)
+  const minutes = totalMinutes % 60
+  if (hours === 0) return `${minutes}m`
+  return `${hours}h ${minutes}m`
+}
+
 // Very compact numeric form, e.g. "8/16" - used where space is tight, such
 // as a Trends chart bar's date-range label (two of these stacked, one for
 // the period's start and one for its end).

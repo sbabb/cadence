@@ -27,3 +27,6 @@ desktop.ini
 
 # Vite cache
 .vite/
+
+# Screenshots Claude generates while working - review material, not project source
+Claude outputs/

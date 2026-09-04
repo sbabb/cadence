@@ -125,7 +125,7 @@ export function mixOklch(a, b, t) {
   }
 }
 
-// The dial's color ramp, deliberately weighted rather than linear.
+// The bar's color ramp, deliberately weighted rather than linear.
 //
 // A straight 0-100% map with amber at the midpoint would have you looking at
 // orange by the time you'd spent 70% of a perfectly normal day's budget, which
@@ -134,35 +134,75 @@ export function mixOklch(a, b, t) {
 // should feel unremarkable, and the color should only tighten as you approach
 // the edge. Sanity check against the brief: $35 of a $50 limit is 0.70, which
 // lands 20% of the way from green to amber - "mostly green, a bit of amber."
-export const RAMP_STOPS = [
-  { at: 0.0, hex: '#9ece6a', label: 'green' },
-  { at: 0.65, hex: '#9ece6a', label: 'green (held)' },
-  { at: 0.9, hex: '#e0af68', label: 'amber' },
-  { at: 1.0, hex: '#f7768e', label: 'red' }
+//
+// The POSITIONS below are fixed; the COLORS come from whichever theme is
+// active. That split is the point: switching theme should change what red
+// looks like, never when red starts.
+export const RAMP_POSITIONS = [
+  { at: 0.0, key: 'green', label: 'green' },
+  { at: 0.65, key: 'green', label: 'green (held)' },
+  { at: 0.9, key: 'amber', label: 'amber' },
+  { at: 1.0, key: 'red', label: 'red' }
 ]
 
-// Past the limit the hue stops moving (it's already red - there's nowhere
-// meaningful left to go) and the color deepens instead, so being $5 over and
-// being $200 over don't look identical.
-const OVER_STOP = { hex: '#db4b4b', label: 'deep red' }
+// Tokyo Night's, so a caller that hasn't been handed a theme still gets the
+// app's default ramp rather than nothing.
+export const DEFAULT_RAMP_COLORS = {
+  green: '#9ece6a',
+  amber: '#e0af68',
+  red: '#f7768e',
+  redDeep: '#db4b4b'
+}
 
-const RAMP_OKLCH = RAMP_STOPS.map((stop) => ({ ...stop, oklch: hexToOklch(stop.hex) }))
-const OVER_OKLCH = hexToOklch(OVER_STOP.hex)
+// hexToOklch runs six cube roots per conversion and rampHex is called on every
+// animation frame, so the converted stops are built once per palette and kept.
+// Keyed on the colors themselves rather than on a theme id, so the cache can't
+// go stale if a palette is ever edited in place.
+const rampCache = new Map()
 
-// spentFraction: today's spend as a fraction of today's limit. 0 = nothing
+function compiledRamp(colors) {
+  const c = colors || DEFAULT_RAMP_COLORS
+  const key = `${c.green}|${c.amber}|${c.red}|${c.redDeep}`
+  let compiled = rampCache.get(key)
+  if (!compiled) {
+    compiled = {
+      stops: RAMP_POSITIONS.map((pos) => ({
+        at: pos.at,
+        label: pos.label,
+        hex: c[pos.key],
+        oklch: hexToOklch(c[pos.key])
+      })),
+      // Past the limit the hue stops moving (it's already red - there's
+      // nowhere meaningful left to go) and the color deepens instead, so
+      // being $5 over and being $200 over don't look identical.
+      over: hexToOklch(c.redDeep)
+    }
+    rampCache.set(key, compiled)
+  }
+  return compiled
+}
+
+// The ramp's stops as the debug panel wants to display them: position, hex,
+// and the name of the colour at that position.
+export function rampStops(colors) {
+  return compiledRamp(colors).stops.map(({ at, hex, label }) => ({ at, hex, label }))
+}
+
+// spentFraction: the day's spend as a fraction of the day's limit. 0 = nothing
 // spent, 1 = exactly at the limit, >1 = over. Returns an OKLCH color.
-export function rampOklch(spentFraction) {
+export function rampOklch(spentFraction, colors) {
+  const { stops, over } = compiledRamp(colors)
   const t = Number.isFinite(spentFraction) ? Math.max(0, spentFraction) : 0
 
   if (t >= 1) {
     // 1.0 -> 2.0 (100% over) deepens the red, then holds.
     const overT = clamp01(t - 1)
-    return mixOklch(RAMP_OKLCH[RAMP_OKLCH.length - 1].oklch, OVER_OKLCH, overT)
+    return mixOklch(stops[stops.length - 1].oklch, over, overT)
   }
 
-  for (let i = 0; i < RAMP_OKLCH.length - 1; i += 1) {
-    const from = RAMP_OKLCH[i]
-    const to = RAMP_OKLCH[i + 1]
+  for (let i = 0; i < stops.length - 1; i += 1) {
+    const from = stops[i]
+    const to = stops[i + 1]
     if (t >= from.at && t <= to.at) {
       const span = to.at - from.at
       const local = span === 0 ? 0 : (t - from.at) / span
@@ -170,9 +210,9 @@ export function rampOklch(spentFraction) {
     }
   }
 
-  return RAMP_OKLCH[0].oklch
+  return stops[0].oklch
 }
 
-export function rampHex(spentFraction) {
-  return oklchToHex(rampOklch(spentFraction))
+export function rampHex(spentFraction, colors) {
+  return oklchToHex(rampOklch(spentFraction, colors))
 }

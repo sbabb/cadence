@@ -1,15 +1,28 @@
 import { useRef, useState } from 'react'
 import { formatDisplayDate } from '../utils/dateUtils.js'
 import { CADENCE_OPTIONS } from '../utils/cadence.js'
+import { THEMES } from '../utils/themes.js'
 import ConfirmDialog from './ConfirmDialog.jsx'
 
 // Reached from the dashboard's header (PeriodPager's "SETTINGS" button).
-// Three independent sections: editing the active period's amount/end date,
-// the optional pay-cadence preference, and abandoning the active period
-// early. Each is self-contained - editing the period and abandoning it are
-// mutually exclusive actions a user would take on separate visits, so there
-// is no shared form state between them.
-export default function Settings({ period, cadence, onUpdatePeriodDetails, onSetCadence, onAbandonPeriod, onBack }) {
+// Four independent sections: editing the active period's amount/end date, the
+// optional pay-cadence preference, the colour theme, and abandoning the active
+// period early. Each is self-contained - editing the period and abandoning it
+// are mutually exclusive actions a user would take on separate visits, so
+// there is no shared form state between them.
+//
+// The destructive one stays last, on its own, below everything you might
+// actually have come here to do.
+export default function Settings({
+  period,
+  cadence,
+  theme,
+  onUpdatePeriodDetails,
+  onSetCadence,
+  onSetTheme,
+  onAbandonPeriod,
+  onBack
+}) {
   const [amountInput, setAmountInput] = useState(String(period.initialAmount))
   const [endDate, setEndDate] = useState(period.endDate)
   const [error, setError] = useState('')
@@ -135,6 +148,45 @@ export default function Settings({ period, cadence, onUpdatePeriodDetails, onSet
             >
               <span className="cadence-option-label">{opt.label}</span>
               <span className="cadence-option-detail">{opt.detail}</span>
+            </button>
+          ))}
+        </div>
+      </section>
+
+      <section className="settings-section">
+        <h2 className="settings-section-title">THEME</h2>
+        <p className="settings-section-hint">
+          Applies immediately and is remembered. The green/amber/red the spend bar mixes through comes from the
+          theme too, so the bar always belongs to the palette around it.
+        </p>
+        <div className="theme-options">
+          {THEMES.map((t) => (
+            <button
+              key={t.id}
+              type="button"
+              className={`theme-option ${theme === t.id ? 'theme-option-selected' : ''}`}
+              onClick={() => onSetTheme(t.id)}
+              aria-pressed={theme === t.id}
+            >
+              <span className="theme-option-text">
+                <span className="theme-option-label">{t.label}</span>
+                <span className="theme-option-detail">{t.detail}</span>
+              </span>
+              {/* Drawn in the theme's OWN colours rather than the active
+                  ones, so the row is a preview instead of a name you have to
+                  select before you can see. The strip sits on that theme's
+                  background for the same reason - Nord's green against Nord's
+                  slate is a different proposition from Nord's green against
+                  white. */}
+              <span
+                className="theme-swatches"
+                style={{ background: t.tokens.bg, borderColor: t.tokens.border }}
+                aria-hidden="true"
+              >
+                {['green', 'amber', 'red', 'blue', 'purple'].map((key) => (
+                  <span key={key} className="theme-swatch" style={{ background: t.tokens[key] }} />
+                ))}
+              </span>
             </button>
           ))}
         </div>

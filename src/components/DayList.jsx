@@ -7,10 +7,16 @@ import { formatMoney } from '../utils/format.js'
 // color coding are identical either way; only whether rows respond to taps
 // differs.
 //
-// In an editable list, tapping a row SELECTS that day: the dial above swings
-// to show it, and the dial becomes the place you log or edit its spend. The
-// row list is therefore a day picker, not a second editing surface.
-export default function DayList({ schedule, editable, selectedDate, onSelectDay }) {
+// Two different taps in an editable list, deliberately:
+//   - anywhere on the row SELECTS that day, and the bar above swings to it
+//   - the SPENT figure itself OPENS that day's sheet
+//
+// Tapping the row used to do both, which meant you couldn't look at a day
+// without being thrown into an edit. Splitting them costs discoverability, so
+// the SPENT figure is drawn as a field rather than plain text - and its tap
+// target is the full row height, so it stays thumb-sized despite looking
+// small.
+export default function DayList({ schedule, editable, selectedDate, onSelectDay, onEditDay }) {
   return (
     <div className="day-list">
       <div className="day-list-header">
@@ -93,7 +99,23 @@ export default function DayList({ schedule, editable, selectedDate, onSelectDay 
             }
           >
             <span className="day-row-date">{formatDisplayDateWithDay(row.date)}</span>
-            <span className="day-row-spent">{spentDisplay}</span>
+            {selectable ? (
+              <button
+                type="button"
+                className="day-row-spent day-row-spent-editable"
+                // Stop the row's own handler firing too, or selecting and
+                // opening would race each other.
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onEditDay(row.date)
+                }}
+                aria-label={`Edit spend for ${formatDisplayDateWithDay(row.date)}`}
+              >
+                {spentDisplay}
+              </button>
+            ) : (
+              <span className="day-row-spent">{spentDisplay}</span>
+            )}
             <span className="day-row-limit">{limitDisplay}</span>
           </div>
         )

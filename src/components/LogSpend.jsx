@@ -1,65 +1,77 @@
 import { useState } from 'react'
+import { formatMoney } from '../utils/format.js'
+import useKeyboardInset from '../hooks/useKeyboardInset.js'
 
-// One sheet, three flows, distinguished by `mode`:
-//  - mode 'add' (the dashboard's main today-tile): logs a NEW transaction
-//    that gets ADDED onto today's existing running total. The amount
-//    field always starts BLANK here - it's a fresh transaction amount,
-//    never the total itself, so there's nothing sensible to pre-fill.
-//  - mode 'replace' + isToday (the "EDIT TOTAL" link): lets the user
-//    manually overwrite today's exact running total to correct a mistake.
-//    Pre-filled with the current total; whatever's confirmed REPLACES it.
-//  - mode 'replace' + a past date (tapping a day-list row): same
-//    set-the-exact-value semantics as EDIT TOTAL, but for a historical day.
-// `dateLabel` is the already-formatted display date, used for past days.
-export default function LogSpend({
-  mode,
-  initialAmount,
-  currentTotal,
-  alreadyLogged,
-  dailyLimit,
-  isToday,
-  dateLabel,
-  onConfirm,
-  onCancel
-}) {
-  const [amountInput, setAmountInput] = useState(
-    mode === 'replace' && initialAmount ? String(initialAmount) : ''
-  )
+// The spend sheet. Both ways of recording a number live here now:
+//
+//   ADD       - the everyday action. Each tap is another transaction and it
+//               accumulates onto whatever the day already holds.
+//   SET TOTAL - the correction. Overwrites the day's figure outright.
+//
+// These used to be decided BEFORE the sheet opened, with "EDIT TOTAL" sitting
+// on the dashboard as a permanent link. Out of context it was unexplainable -
+// the user who commissioned it asked what it was. Here the day's running total
+// is on screen directly above the buttons, so "add 20" versus "set total to
+// 20" needs no explanation at all.
+//
+// SET TOTAL only appears once the day HAS a total. On an empty day the two
+// actions are arithmetically identical, so offering both would be a choice
+// without a difference. That also makes the rule uniform: it depends on
+// whether the day has a figure, not on whether the day is today, so a past day
+// can now be added to as well as overwritten.
+export default function LogSpend({ currentTotal, alreadyLogged, dailyLimit, isToday, dateLabel, onConfirm, onCancel }) {
+  const [amountInput, setAmountInput] = useState('')
+
+  // The sheet is anchored to the bottom of the screen, which is exactly where
+  // the Android keyboard opens. On browsers that shrink the layout viewport
+  // this reads 0 and nothing moves; everywhere else it's the height of the
+  // keyboard, and the backdrop pads itself by that much so SET TOTAL and
+  // CANCEL sit above it instead of behind it.
+  const keyboardInset = useKeyboardInset()
 
   const handleAmountChange = (e) => {
-    const digitsOnly = e.target.value.replace(/[^0-9]/g, '')
-    setAmountInput(digitsOnly)
+    setAmountInput(e.target.value.replace(/[^0-9]/g, ''))
   }
 
-  const handleConfirm = () => {
-    const amount = amountInput === '' ? 0 : parseInt(amountInput, 10)
-    onConfirm(amount)
+  const amount = amountInput === '' ? 0 : parseInt(amountInput, 10)
+
+  // Submitting the FORM is the add. That's what makes the phone keyboard's
+  // checkmark work: without a form there was nothing for it to submit, so the
+  // key did nothing and the keyboard had to be dismissed by hand first.
+  const handleSubmit = (e) => {
+    e.preventDefault()
+    onConfirm(amount, 'add')
+  }
+
+  const handleSetTotal = () => {
+    onConfirm(amount, 'replace')
   }
 
   const handleBackdropClick = (e) => {
     if (e.target === e.currentTarget) onCancel()
   }
 
-  let title
-  if (mode === 'add') {
-    title = "ADD TO TODAY'S SPEND"
-  } else if (isToday) {
-    title = "EDIT TODAY'S TOTAL"
-  } else {
-    const verb = alreadyLogged ? 'EDIT' : 'LOG'
-    title = `${verb} SPEND — ${dateLabel}`
-  }
-
-  const confirmLabel = mode === 'add' ? 'ADD' : 'CONFIRM'
-
   return (
-    <div className="log-spend-backdrop" onClick={handleBackdropClick}>
-      <div className="log-spend-sheet">
-        <div className="log-spend-title">{title}</div>
-        <div className="log-spend-limit">DAILY LIMIT: ${Math.round(dailyLimit)}</div>
-        {mode === 'add' && currentTotal > 0 && (
-          <div className="log-spend-limit">CURRENT TOTAL: ${Math.round(currentTotal)}</div>
-        )}
+    <div
+      className="log-spend-backdrop"
+      onClick={handleBackdropClick}
+      style={{ paddingBottom: keyboardInset }}
+    >
+      <form
+        className={`log-spend-sheet ${keyboardInset > 0 ? 'log-spend-sheet-lifted' : ''}`}
+        onSubmit={handleSubmit}
+      >
+        <div className="log-spend-title">{isToday ? 'TODAY' : dateLabel}</div>
+
+        <div className="log-spend-context">
+          DAILY LIMIT {formatMoney(dailyLimit)}
+          {alreadyLogged && (
+            <>
+              {' · '}
+              <span className="log-spend-logged">LOGGED {formatMoney(currentTotal)}</span>
+            </>
+          )}
+        </div>
 
         <div className="log-spend-input-row">
           <span className="dollar-sign">$</span>
@@ -67,20 +79,30 @@ export default function LogSpend({
             type="text"
             inputMode="numeric"
             pattern="[0-9]*"
+            enterKeyHint="done"
             placeholder="0"
             value={amountInput}
             onChange={handleAmountChange}
             autoFocus
+            aria-label="Amount"
           />
         </div>
 
-        <button className="primary-button" onClick={handleConfirm}>
-          {confirmLabel}
+        <button type="submit" className="primary-button">
+          {alreadyLogged ? 'ADD' : 'LOG SPEND'}
         </button>
-        <button className="cancel-button" onClick={onCancel}>
-          CANCEL
-        </button>
-      </div>
+
+        <div className="log-spend-secondary">
+          {alreadyLogged && (
+            <button type="button" className="cancel-button" onClick={handleSetTotal}>
+              SET TOTAL
+            </button>
+          )}
+          <button type="button" className="cancel-button" onClick={onCancel}>
+            CANCEL
+          </button>
+        </div>
+      </form>
     </div>
   )
 }

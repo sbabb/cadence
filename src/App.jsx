@@ -1,5 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import useBudgetData from './hooks/useBudgetData'
+import { ThemeColorsContext } from './hooks/useThemeColors.js'
+import { applyTheme, getTheme, rampColorsFor } from './utils/themes.js'
 import { formatDisplayDateWithDay, daysBetweenInclusive } from './utils/dateUtils.js'
 import { deriveNextPeriod } from './utils/cadence.js'
 import Onboarding from './components/Onboarding'
@@ -22,6 +24,8 @@ const LAPSED_THRESHOLD_DAYS = 3
 export default function App() {
   const {
     today,
+    now,
+    previousDayLimit,
     periods,
     currentPeriod,
     reconciled,
@@ -31,6 +35,7 @@ export default function App() {
     daysRemaining,
     currentRemaining,
     cadence,
+    theme,
     startPeriod,
     startFirstPeriod,
     logSpendForDate,
@@ -38,18 +43,32 @@ export default function App() {
     resetAllData,
     clearTodayLog,
     setCadence,
+    setTheme,
     updatePeriodDetails,
     abandonCurrentPeriod
   } = useBudgetData()
 
-  // The date string currently open in the Log Spend sheet, or null when the
-  // sheet is closed. `logMode` controls what CONFIRM does with the entered
-  // number: 'add' accumulates onto that day's existing running total (the
-  // everyday flow for today - each tap is a new transaction), 'replace' sets
-  // the exact total (correcting today via EDIT TOTAL, or filling in a past
-  // day, where you're recalling a total rather than adding to one).
+  // main.jsx has already painted the stored theme before this component ever
+  // rendered; this effect is what keeps it current afterwards, when the user
+  // picks a different one in Settings.
+  const activeTheme = useMemo(() => getTheme(theme), [theme])
+  useEffect(() => {
+    applyTheme(activeTheme)
+  }, [activeTheme])
+
+  // Derived during render, not in an effect, so the bar is never one frame
+  // behind the palette around it. See useThemeColors.js.
+  const rampColors = useMemo(() => rampColorsFor(activeTheme), [activeTheme])
+
+  // The date currently open in the spend sheet, or null when it's closed. The
+  // sheet itself decides whether a number is added or set outright - it has
+  // the day's running total on screen, which is the context that makes the
+  // choice obvious. App just records which day is being edited.
   const [editingDate, setEditingDate] = useState(null)
-  const [logMode, setLogMode] = useState('add')
+
+  // Bumped whenever the header is tapped. Screens watch it to return to their
+  // resting state - the dashboard uses it to put the bar back on today.
+  const [homeNonce, setHomeNonce] = useState(0)
 
   // Drives the post-period-end interstitial sequence: null means "nothing
   // to show, render the normal pager." Once the active period's end date
@@ -95,28 +114,34 @@ export default function App() {
     setEndFlowStep(null)
   }
 
-  const handleConfirmSpend = (amount) => {
-    if (logMode === 'add') {
-      addSpendToToday(amount)
+  const handleConfirmSpend = (amount, mode) => {
+    if (mode === 'add') {
+      // addSpendToToday only ever touches today; any other day accumulates by
+      // adding to the figure already recorded there.
+      if (editingDate === today) {
+        addSpendToToday(amount)
+      } else {
+        const existing = editingRow && editingRow.logged ? editingRow.amount : 0
+        logSpendForDate(editingDate, existing + amount)
+      }
     } else {
       logSpendForDate(editingDate, amount)
     }
     setEditingDate(null)
   }
 
-  // Tapping the dial. Today accumulates (each tap is another transaction as
-  // the day goes on); a past day is set outright, because you're recalling a
-  // day's total rather than adding to one in progress.
-  const openLogForDate = (date) => {
-    setLogMode(date === today ? 'add' : 'replace')
-    setEditingDate(date)
-  }
+  const openLogForDate = (date) => setEditingDate(date)
 
-  // The EDIT TOTAL link under the dial - always an exact overwrite, for
-  // whichever day the dial is currently showing.
-  const openEditTotalForDate = (date) => {
-    setLogMode('replace')
-    setEditingDate(date)
+  // Tapping the header. Returns to the dashboard from wherever you are and
+  // signals the screens to reset. Deliberately NOT a page reload: there's no
+  // server, so nothing needs re-fetching, and reloading would only disguise a
+  // bug rather than fix it.
+  const goHome = () => {
+    setShowTrends(false)
+    setShowSettings(false)
+    setDevForceSummary(false)
+    setEditingDate(null)
+    setHomeNonce((n) => n + 1)
   }
 
   const handleSummaryContinue = () => {
@@ -183,8 +208,10 @@ export default function App() {
       <Settings
         period={currentPeriod}
         cadence={cadence}
+        theme={theme}
         onUpdatePeriodDetails={updatePeriodDetails}
         onSetCadence={setCadence}
+        onSetTheme={setTheme}
         onAbandonPeriod={handleAbandonPeriod}
         onBack={() => setShowSettings(false)}
       />
@@ -203,16 +230,16 @@ export default function App() {
           activeSchedule={schedule}
           activeDaysRemaining={daysRemaining}
           activeCurrentRemaining={currentRemaining}
+          now={now}
+          previousDayLimit={previousDayLimit}
           onLogForDate={openLogForDate}
-          onEditTotalForDate={openEditTotalForDate}
+          homeNonce={homeNonce}
           onResetAll={resetAllData}
           onClearTodayLog={clearTodayLog}
           onTriggerSummary={() => setDevForceSummary(true)}
         />
         {editingDate && (
           <LogSpend
-            mode={logMode}
-            initialAmount={editingCurrentTotal}
             currentTotal={editingCurrentTotal}
             alreadyLogged={Boolean(editingRow && editingRow.logged)}
             dailyLimit={editingRow ? editingRow.dailyLimit : 0}
@@ -227,9 +254,13 @@ export default function App() {
   }
 
   return (
-    <div className="app-shell">
-      <pre className="ascii-header">{'>'} CADENCE</pre>
-      {screen}
-    </div>
+    <ThemeColorsContext.Provider value={rampColors}>
+      <div className="app-shell">
+        <button type="button" className="ascii-header" onClick={goHome} aria-label="Cadence — back to today">
+          {'>'} CADENCE
+        </button>
+        {screen}
+      </div>
+    </ThemeColorsContext.Provider>
   )
 }

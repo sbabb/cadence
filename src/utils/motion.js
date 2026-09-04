@@ -20,7 +20,7 @@ export const MOTION = {
     label: 'Arc settle',
     duration: 520,
     easing: [0.16, 1, 0.3, 1],
-    note: 'Ring sweeps to its new length'
+    note: 'Bar sweeps to its new length'
   },
   colorDrift: {
     label: 'Color drift',
@@ -41,7 +41,7 @@ export const MOTION = {
     label: 'Entry',
     duration: 720,
     easing: [0.16, 1, 0.3, 1],
-    note: 'Ring sweeps up from empty on mount, number fades and rises'
+    note: 'Bar sweeps out from empty on mount, number counts up'
   },
   idleBreathe: {
     label: 'Idle breathe',

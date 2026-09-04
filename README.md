@@ -41,13 +41,14 @@ through, never generated in advance.
 - **Payday-based setup.** Tell it when you were last paid, how often, and how
   much you can spend. It derives the period. Weekly, every two weeks (26/yr),
   twice a month (24/yr), monthly, or set your own dates.
-- **A dial you tap to log.** It depletes as you spend and shifts continuously
-  green → amber → red. Go over and it runs *backwards* through zero in red
+- **A bar you tap to log.** It depletes as you spend and shifts continuously
+  green → amber → red. Go over and it refills *backwards* from zero in red
   rather than just bottoming out.
-- **Any day, not just today.** Forgot yesterday? Tap that row and the dial
+- **Any day, not just today.** Forgot yesterday? Tap that row and the bar
   follows it, showing that day's figures and its historical limit.
 - **Rollover you can see.** Overspend and it tells you what tomorrow drops to —
   but only when the figure genuinely falls.
+- **Five themes**, switchable in Settings and applied instantly.
 - **Period history** you swipe back through, an end-of-period summary that
   states the facts without moralising, and a trends chart across every period.
 
@@ -64,44 +65,77 @@ prints — the dev server is exposed to the local network.
 ```bash
 npm run build      # production build
 npm run preview    # serve the build
-node scripts/verify-engine.mjs   # engine regression suite, no dependencies
+npm run verify     # both suites below, no dependencies, plain node
 ```
+
+- `scripts/verify-engine.mjs` — 55 scenarios over the algorithm above.
+- `scripts/verify-themes.mjs` — contrast and colour-ramp checks for every
+  theme. See *Themes* below for why this one isn't optional.
 
 ## Design
 
 Terminal-adjacent, deliberately not a generic SaaS dashboard: sharp corners, no
 shadows or gradients, borders rather than fills to carry state, and colour
-always paired with a number or a word. The palette is Tokyo Night, defined once
-as CSS custom properties so nothing downstream invents its own hex.
+always paired with a number or a word.
 
-The dial's colour ramp interpolates in **OKLCH** rather than RGB. Rotating hue
+The bar's colour ramp interpolates in **OKLCH** rather than RGB. Rotating hue
 the short way from green (~130°) to red (~10°) passes through yellow and orange,
 so amber falls out for free without being specified, and perceived brightness
 stays even — the same blend in RGB sags into a muddy olive at the midpoint. The
 ramp is weighted rather than linear: green holds through 65% of the day's limit,
 because spending your allowance as intended shouldn't look like a warning.
 
+A faint field of 2–3px squares drifts up out of the bar and fades before it
+reaches the figure, in whatever colour the bar currently is. It is decoration
+and nothing else — it carries no data, sits behind every piece of text, and is
+removed outright under `prefers-reduced-motion`.
+
 Motion timings live in one exported table (`src/utils/motion.js`) that the
 in-app debug panel reads from, so the documented spec and the running animation
 can't drift apart. `prefers-reduced-motion` is honoured throughout.
+
+## Themes
+
+Five palettes — Tokyo Night (default), Gruvbox Dark, Catppuccin Mocha, Nord,
+and Catppuccin Latte, which is light. Every colour in the app resolves through
+a CSS custom property on `:root`, so a theme is a set of values written onto
+`documentElement` and nothing downstream needs to know theme switching exists.
+The saved theme is applied in `main.jsx` before React mounts, so a Latte user
+never sees an indigo frame on the way in.
+
+The green/amber/red the bar mixes through come from the active theme too, which
+is the one place a theme can do real damage: Tokyo Night's green on Latte's
+near-white background is 1.7:1, which is invisible, and no amount of squinting
+at a screenshot reliably catches that before a user does. So
+`scripts/verify-themes.mjs` checks all of it arithmetically — WCAG contrast for
+every token against every ground, that green/amber/red stay distinguishable
+*from each other* in Oklab, that the "deep" red really is darker than the red it
+deepens from, that light themes invert elevation correctly, and that no point
+along a theme's actual 0–200% colour ramp dips below 3:1 or desaturates toward
+grey. Four of the five palettes needed adjusting to pass.
 
 ## Structure
 
 ```
 src/
   App.jsx              screen router, end-of-period state machine
+  main.jsx             entry point; paints the saved theme before first render
   utils/
     budgetEngine.js    the algorithm above — pure, fully tested
     cadence.js         payday arithmetic and period derivation
     color.js           sRGB <-> OKLCH conversion and the ramp
+    themes.js          the five palettes and the token writer
     motion.js          durations and easing curves, single source of truth
     dateUtils.js       'YYYY-MM-DD' date maths
   hooks/
     useBudgetData.js   localStorage state
     useAnimatedValue.js  rAF interpolation
+    useThemeColors.js  the active ramp colours, via context
+    useKeyboardInset.js  visualViewport fallback for the on-screen keyboard
   components/          screens and widgets
 scripts/
   verify-engine.mjs    55 scenarios, run with plain node
+  verify-themes.mjs    162 colour checks, likewise
 ```
 
 Everything is a pure recompute: the engine derives the whole period from its
