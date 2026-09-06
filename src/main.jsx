@@ -42,7 +42,13 @@ bootTheme()
 // which turns every edit into a mystery.
 if (import.meta.env.PROD && 'serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js').catch((err) => {
+    // Derived from the page's own URL rather than hardcoded to the origin
+    // root, so this works when the app is served from a subpath. The scope
+    // has to match: a worker at /cadence/sw.js cannot claim more than
+    // /cadence/, and asking for more is an error rather than a warning.
+    const swUrl = new URL('sw.js', document.baseURI)
+    const swScope = new URL('./', document.baseURI)
+    navigator.serviceWorker.register(swUrl, { scope: swScope }).catch((err) => {
       // Not fatal - the app works fine without it, just not offline.
       console.warn('Service worker registration failed:', err)
     })

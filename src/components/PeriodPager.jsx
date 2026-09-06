@@ -28,9 +28,6 @@ export default function PeriodPager({
   previousDayLimit,
   onLogForDate,
   homeNonce,
-  onResetAll,
-  onClearTodayLog,
-  onTriggerSummary
 }) {
   const activeIndex = periods.length - 1
   const isActivePeriod = viewIndex === activeIndex
@@ -153,9 +150,6 @@ export default function PeriodPager({
           previousDayLimit={previousDayLimit}
           onLogForDate={onLogForDate}
           homeNonce={homeNonce}
-          onResetAll={onResetAll}
-          onClearTodayLog={onClearTodayLog}
-          onTriggerSummary={onTriggerSummary}
         />
       ) : (
         <PastPeriodView key={period.id} period={period} schedule={pastSchedule} reconciled={pastReconciled} />

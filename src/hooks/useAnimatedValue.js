@@ -4,11 +4,11 @@ import { easingFn, prefersReducedMotion } from '../utils/motion.js'
 // Drives a number toward a target over time, returning the current in-between
 // value on every frame.
 //
-// Why this rather than a CSS transition: the dial needs the intermediate
-// value, not just the endpoints. The ring's color is recomputed from the eased
-// percentage each frame, the center figure counts through real numbers, and
-// the debug panel reports what's on screen right now. A CSS transition would
-// animate the visual result while leaving JavaScript ignorant of it.
+// Why this rather than a CSS transition: the bar needs the intermediate
+// value, not just the endpoints. The fill's colour is recomputed from the
+// eased fraction each frame and the centre figure counts through real
+// numbers. A CSS transition would animate the visual result while leaving
+// JavaScript ignorant of it.
 //
 // Retargeting mid-flight is handled by restarting from wherever the value
 // currently is rather than from the old target, so a second spend logged

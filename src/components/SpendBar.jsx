@@ -18,8 +18,20 @@ const OVERAGE_CAP = 1
 // exist. Reading them as "steam off the bar" only worked when the bar was full.
 // Drifting in place says what is true - this is flair, not information.
 //
-// Fixed rather than randomised per render, so the field does not reshuffle
-// itself every time a number animates.
+// Randomised fresh on every mount rather than laid out by hand, so the field
+// never reads as a designed pattern - but generated once and held in state
+// rather than regenerated on every render, so it doesn't reshuffle itself
+// every time a number animates.
+//
+// The centre column - roughly where the big figure and its "remaining today"
+// label actually have ink - is excluded outright, at every height, rather than
+// squeezed into a narrow band just above the bar the way it used to be. That
+// narrow band sat right at the edge of the particle field's own container, and
+// a mote landing there could get visually clipped against the track beneath it
+// - a dot cut off halfway that read as a dead pixel. Keeping motes out of that
+// column entirely removes the bug and the band both, and it costs nothing:
+// there's no text out at the edges for a mote to collide with regardless of
+// how high or low it drifts.
 //
 // Each mote runs TWO animations at different durations: a slow positional
 // drift and a separate opacity twinkle. Because the periods don't divide into
@@ -29,29 +41,76 @@ const OVERAGE_CAP = 1
 // Everything here is data for CSS - position, drift vector, sizes, timings,
 // peak opacity. Colour is absent because it isn't per-mote: they all inherit
 // --bar-color, so the field is always the colour of the figure it sits behind.
-const PARTICLES = [
-  // The y values are not free. The readout is figure on top (roughly the first
-  // 59%), label under it (to 87%), then the gap above the bar. Out at the
-  // edges a mote can sit anywhere, because there is no type there - but in the
-  // centre column, where the figure and the label actually are, a 3px square
-  // landing on a letter stroke stops looking like atmosphere and starts
-  // looking like a dead pixel. So the middle of the field is kept down in the
-  // band just above the bar, where it can drift freely without touching text.
-  { x: 4, y: 58, size: 3, dx: 4, dy: -5, drift: 7200, twinkle: 4300, delay: 0, peak: 0.3 },
-  { x: 11, y: 26, size: 2, dx: -3, dy: 4, drift: 6100, twinkle: 3500, delay: 900, peak: 0.22 },
-  { x: 18, y: 80, size: 2, dx: 5, dy: 3, drift: 8300, twinkle: 5200, delay: 2400, peak: 0.26 },
-  { x: 25, y: 44, size: 3, dx: -4, dy: -3, drift: 6800, twinkle: 3900, delay: 1300, peak: 0.28 },
-  { x: 31, y: 14, size: 2, dx: 3, dy: -4, drift: 7600, twinkle: 4700, delay: 400, peak: 0.24 },
-  { x: 38, y: 89, size: 2, dx: -5, dy: 3, drift: 9100, twinkle: 3300, delay: 3100, peak: 0.2 },
-  { x: 45, y: 95, size: 3, dx: 4, dy: 4, drift: 6400, twinkle: 5600, delay: 1800, peak: 0.28 },
-  { x: 53, y: 87, size: 2, dx: -3, dy: -5, drift: 8700, twinkle: 4100, delay: 600, peak: 0.22 },
-  { x: 61, y: 93, size: 2, dx: 5, dy: -3, drift: 7000, twinkle: 3700, delay: 2700, peak: 0.26 },
-  { x: 68, y: 32, size: 3, dx: -4, dy: 4, drift: 8000, twinkle: 5000, delay: 1100, peak: 0.28 },
-  { x: 75, y: 68, size: 2, dx: 3, dy: 5, drift: 6600, twinkle: 4500, delay: 3400, peak: 0.2 },
-  { x: 82, y: 18, size: 2, dx: -5, dy: -4, drift: 8900, twinkle: 3100, delay: 200, peak: 0.24 },
-  { x: 89, y: 50, size: 3, dx: 4, dy: 3, drift: 7400, twinkle: 5400, delay: 2000, peak: 0.28 },
-  { x: 96, y: 78, size: 2, dx: -3, dy: -4, drift: 6900, twinkle: 4900, delay: 1500, peak: 0.22 }
-]
+const MOTE_COUNT = 14
+
+// Where the figure and its label actually have ink, horizontally. No mote is
+// ever placed in this column, at any height.
+//
+// It is deliberately wide. The figure is 38px, and a period with a few
+// thousand dollars in it renders something like "$2,400" - seven characters
+// of a monospaced face is over 160px, which on a 320px phone is half the
+// screen. Sizing this column to a typical figure would work until the day the
+// number got long. The bands it leaves - 3-25 and 75-97 - are exactly where
+// the old hand-placed field had its outermost motes, which were never the
+// ones that caused trouble.
+const TEXT_COLUMN_MIN_X = 27
+const TEXT_COLUMN_MAX_X = 73
+
+// The readout is roughly four times wider than it is tall, so a percentage
+// point of x is worth about four of y. Comparing raw percentages would call
+// two motes "far apart" when they are stacked almost vertically.
+const X_TO_Y_ASPECT = 4
+const MIN_SEPARATION = 4.5
+const MAX_PLACEMENT_TRIES = 40
+
+const randomBetween = (min, max) => min + Math.random() * (max - min)
+const randomSign = () => (Math.random() < 0.5 ? -1 : 1)
+
+function tooClose(candidate, placed) {
+  return placed.some((p) => {
+    const dx = (candidate.x - p.x) / X_TO_Y_ASPECT
+    const dy = candidate.y - p.y
+    return Math.sqrt(dx * dx + dy * dy) < MIN_SEPARATION
+  })
+}
+
+function generateMotes() {
+  const motes = []
+  for (let i = 0; i < MOTE_COUNT; i += 1) {
+    // Alternating rather than a coin flip per mote: fourteen coin flips can
+    // easily land eleven-to-three, and a field visibly heavier on one side
+    // reads as a mistake rather than as randomness.
+    const onLeft = i % 2 === 0
+
+    // Rejected and retried if it lands on top of a mote already placed - two
+    // 3px squares a pixel apart read as one brighter blob, not as two motes.
+    // The retry gives up rather than looping forever; a rare close pair is a
+    // far smaller problem than a hang.
+    let x = 0
+    let y = 0
+    for (let attempt = 0; attempt < MAX_PLACEMENT_TRIES; attempt += 1) {
+      x = onLeft ? randomBetween(3, TEXT_COLUMN_MIN_X - 2) : randomBetween(TEXT_COLUMN_MAX_X + 2, 97)
+      // Capped short of the field's own bottom edge. The clipped-mote bug
+      // lived in that last sliver, and there is nothing down there worth
+      // going back for.
+      y = randomBetween(8, 82)
+      if (!tooClose({ x, y }, motes)) break
+    }
+
+    motes.push({
+      x,
+      y,
+      size: Math.random() < 0.5 ? 2 : 3,
+      dx: randomSign() * randomBetween(3, 5),
+      dy: randomSign() * randomBetween(3, 5),
+      drift: Math.round(randomBetween(6000, 9200)),
+      twinkle: Math.round(randomBetween(3100, 5600)),
+      delay: Math.round(randomBetween(0, 3400)),
+      peak: Number(randomBetween(0.2, 0.3).toFixed(2))
+    })
+  }
+  return motes
+}
 
 // The spend bar. Replaces the dial, which was legible but cost 196px of
 // vertical space and pushed the day list off the first screen.
@@ -73,13 +132,14 @@ export default function SpendBar({
   limit,
   logged,
   dateLabel,
-  onTap,
-  speed = 1,
-  debugTrigger
+  onTap
 }) {
   // The four ramp colours belong to whichever theme is active, and they're
   // read during render so the bar can never be a frame behind the palette.
   const rampColors = useThemeColors()
+
+  // Generated once per mount - see the comment above generateMotes().
+  const [particles] = useState(generateMotes)
 
   const safeLimit = limit > 0 ? limit : 0
   const isOver = spent > safeLimit
@@ -127,22 +187,19 @@ export default function SpendBar({
 
   const animatedFill = useAnimatedValue(fillTarget, {
     duration: fillDuration,
-    easing: MOTION.arcSettle.easing,
-    speed
+    easing: MOTION.arcSettle.easing
   })
 
   // Colour trails the width on purpose - it should read as a consequence of
   // the bar moving rather than part of the same gesture.
   const animatedFraction = useAnimatedValue(phase === 'mount' ? 0 : spentFraction, {
     duration: phase === 'entering' ? MOTION.entry.duration : MOTION.colorDrift.duration,
-    easing: MOTION.colorDrift.easing,
-    speed
+    easing: MOTION.colorDrift.easing
   })
 
   const animatedAmount = useAnimatedValue(phase === 'mount' ? 0 : isOver ? overage : remaining, {
     duration: phase === 'entering' ? MOTION.entry.duration : MOTION.numberCount.duration,
-    easing: MOTION.numberCount.easing,
-    speed
+    easing: MOTION.numberCount.easing
   })
 
   const fillColor = useMemo(
@@ -161,10 +218,7 @@ export default function SpendBar({
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
         setPulsing(true)
-        pulseTimerRef.current = setTimeout(
-          () => setPulsing(false),
-          MOTION.thresholdPulse.duration / (speed || 1) + 40
-        )
+        pulseTimerRef.current = setTimeout(() => setPulsing(false), MOTION.thresholdPulse.duration + 40)
       })
     })
   }
@@ -189,18 +243,6 @@ export default function SpendBar({
     []
   )
 
-  // Dev-only hook for the motion debug panel.
-  useEffect(() => {
-    if (!debugTrigger) return
-    if (debugTrigger.type === 'thresholdPulse') firePulse()
-    if (debugTrigger.type === 'entry') setPhase('mount')
-    if (debugTrigger.type === 'tap') {
-      setPressed(true)
-      setTimeout(() => setPressed(false), MOTION.tapPress.duration / (speed || 1))
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [debugTrigger])
-
   const reduced = prefersReducedMotion()
   const breathing = !logged && !reduced && phase === 'live'
 
@@ -216,7 +258,7 @@ export default function SpendBar({
     : `${formatMoney(remaining)} remaining for ${spokenDay}. Tap to log spend.`
 
   return (
-    <div className={shellClasses} style={{ '--bar-color': fillColor, '--motion-speed': speed }}>
+    <div className={shellClasses} style={{ '--bar-color': fillColor }}>
       <button
         type="button"
         className="bar-button"
@@ -234,7 +276,7 @@ export default function SpendBar({
         <div className="bar-readout">
           {!reduced && (
             <div className="bar-particles" aria-hidden="true">
-              {PARTICLES.map((p, i) => (
+              {particles.map((p, i) => (
                 <span
                   key={i}
                   className="bar-particle"

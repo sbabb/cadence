@@ -415,7 +415,7 @@ input, button, select, textarea {
 }
 
 .bar-pulsing {
-  animation: bar-pulse calc(420ms / var(--motion-speed, 1)) cubic-bezier(0.34, 1.56, 0.64, 1) 1;
+  animation: bar-pulse 420ms cubic-bezier(0.34, 1.56, 0.64, 1) 1;
 }
 
 @keyframes bar-pulse {
@@ -433,7 +433,7 @@ input, button, select, textarea {
   cursor: pointer;
   color: inherit;
   text-align: center;
-  transition: transform calc(140ms / var(--motion-speed, 1)) cubic-bezier(0.4, 0, 1, 1);
+  transition: transform 140ms cubic-bezier(0.4, 0, 1, 1);
 }
 
 /* Holds the figure, the label, and the particle field behind them. Its height
@@ -466,10 +466,10 @@ input, button, select, textarea {
      drift independently, so the combined state takes minutes to repeat and the
      field never reads as a loop. */
   animation:
-    mote-drift calc(var(--drift) / var(--motion-speed, 1)) ease-in-out
-      calc(var(--delay) / var(--motion-speed, 1)) infinite alternate,
-    mote-twinkle calc(var(--twinkle) / var(--motion-speed, 1)) ease-in-out
-      calc(var(--delay) / var(--motion-speed, 1)) infinite;
+    mote-drift var(--drift) ease-in-out
+      var(--delay) infinite alternate,
+    mote-twinkle var(--twinkle) ease-in-out
+      var(--delay) infinite;
 }
 
 /* A few pixels, over several seconds. If you can see it move while looking
@@ -547,15 +547,60 @@ input, button, select, textarea {
   border-color: var(--red);
 }
 
-/* Width and colour are driven from JavaScript so the value is available for
-   the debug readout, so there is deliberately no CSS transition here. */
+/* Width and colour are driven from JavaScript, so there is deliberately no
+   CSS transition on either - a transition would fight the interpolation
+   already happening in useAnimatedValue.
+ *
+ * What CSS does own here is the ambient motion: a very slow brightness pulse
+ * and a band of light that crosses the fill. Both are deliberately under the
+ * threshold where you would call them an animation - the bar should look
+ * alive when you glance at it, not look like something is playing. */
 .bar-fill {
+  position: relative;
+  overflow: hidden;
   height: 100%;
   min-width: 2px;
+  animation: bar-life 3400ms ease-in-out infinite;
 }
 
-.bar-breathing {
-  animation: bar-breathe calc(2600ms / var(--motion-speed, 1)) cubic-bezier(0.42, 0, 0.58, 1) infinite;
+/* The sheen lives on its own pseudo-element rather than on the fill, because
+   an element only has one animation slot and the fill's is spoken for. */
+.bar-fill::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    100deg,
+    transparent 30%,
+    rgba(255, 255, 255, 0.26) 50%,
+    transparent 70%
+  );
+  background-size: 220% 100%;
+  /* Overlay rather than a flat white wash: it lifts a dark fill and does not
+     blow out a bright one, so the same rule works across all five themes. */
+  mix-blend-mode: overlay;
+  pointer-events: none;
+  animation: bar-sheen 5200ms linear infinite;
+}
+
+@keyframes bar-life {
+  0%, 100% { filter: brightness(1); }
+  50% { filter: brightness(1.07); }
+}
+
+@keyframes bar-sheen {
+  from { background-position: -60% 0; }
+  to { background-position: 160% 0; }
+}
+
+/* The unlogged state keeps its own, much more visible breathe - that one
+   carries meaning (nothing logged yet) where the ambient pulse carries none.
+   Both are named in one declaration because the compound selector overrides
+   the fill's animation outright rather than adding to it. */
+.bar-fill.bar-breathing {
+  animation:
+    bar-breathe 2600ms cubic-bezier(0.42, 0, 0.58, 1) infinite,
+    bar-life 3400ms ease-in-out infinite;
 }
 
 @keyframes bar-breathe {
@@ -758,191 +803,6 @@ input, button, select, textarea {
 
 .day-row-selected .day-row-spent-editable {
   border-bottom-color: var(--blue);
-}
-
-/* ---------- Dev tools (temporary - remove before deployment) ---------- */
-
-.dev-reset-section {
-  margin-top: 28px;
-  padding-top: 14px;
-  border-top: 1px dashed var(--border-bright);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-}
-
-.dev-reset-button,
-.dev-clear-today-button,
-.dev-trigger-summary-button,
-.dev-debug-button {
-  background: transparent;
-  border: 1px dashed var(--text-dim);
-  color: var(--text-dim);
-  padding: 7px 12px;
-  font-size: 12px;
-  letter-spacing: 1px;
-  cursor: pointer;
-}
-
-.dev-reset-button:hover { color: var(--orange); border-color: var(--orange); }
-.dev-clear-today-button:hover { color: var(--text-mid); border-color: var(--text-mid); }
-.dev-trigger-summary-button:hover { color: var(--blue); border-color: var(--blue); }
-.dev-debug-button:hover { color: var(--purple); border-color: var(--purple); }
-
-/* ---------- Motion debug panel (temporary, dev only) ---------- */
-
-.debug-panel {
-  position: fixed;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 300;
-  max-height: 72vh;
-  overflow-y: auto;
-  background: var(--bg);
-  border-top: 1px solid var(--purple);
-  padding: 12px 14px 18px 14px;
-}
-
-.debug-inner {
-  width: 100%;
-  max-width: 480px;
-  margin: 0 auto;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.debug-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-}
-
-.debug-title {
-  font-size: 13px;
-  letter-spacing: 1.5px;
-  color: var(--purple);
-  margin: 0;
-}
-
-.debug-close {
-  background: transparent;
-  border: 1px solid var(--border);
-  color: var(--text-dim);
-  font-size: 13px;
-  padding: 4px 9px;
-  cursor: pointer;
-  letter-spacing: 1px;
-}
-
-.debug-close:hover {
-  color: var(--text);
-  border-color: var(--border-bright);
-}
-
-.debug-block {
-  border: 1px solid var(--border);
-  padding: 10px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.debug-block-title {
-  font-size: 11px;
-  letter-spacing: 1.2px;
-  color: var(--text-dim);
-  margin: 0;
-}
-
-.debug-scrub-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.debug-scrub-row input[type='range'] {
-  flex: 1;
-  accent-color: var(--purple);
-  min-width: 0;
-}
-
-.debug-scrub-value {
-  font-size: 14px;
-  color: var(--text);
-  min-width: 74px;
-  text-align: right;
-  white-space: nowrap;
-}
-
-.debug-buttons {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-.debug-button {
-  background: transparent;
-  border: 1px solid var(--border-bright);
-  color: var(--text-mid);
-  font-size: 12px;
-  letter-spacing: 0.8px;
-  padding: 6px 9px;
-  cursor: pointer;
-}
-
-.debug-button:hover {
-  color: var(--purple);
-  border-color: var(--purple);
-}
-
-.debug-button-active {
-  color: var(--purple);
-  border-color: var(--purple);
-  background: var(--bg-elevated);
-}
-
-/* The readout is the point of this panel: it is a spec sheet you can watch,
-   with the exact durations and curves the running animation is using, so the
-   numbers can be retyped straight into Rive. */
-.debug-readout {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  font-size: 12px;
-}
-
-.debug-readout-row {
-  display: grid;
-  grid-template-columns: 96px 1fr;
-  gap: 8px;
-  align-items: baseline;
-}
-
-.debug-readout-key {
-  color: var(--text-dim);
-  letter-spacing: 0.5px;
-}
-
-.debug-readout-value {
-  color: var(--text);
-  word-break: break-all;
-}
-
-.debug-swatch-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.debug-swatch {
-  width: 22px;
-  height: 12px;
-  border: 1px solid var(--border-bright);
-  flex: 0 0 auto;
 }
 
 /* ---------- Confirm dialog ---------- */
@@ -1529,6 +1389,89 @@ input, button, select, textarea {
   border-color: var(--blue);
 }
 
+/* Backup. Two equal actions side by side, in the app's neutral blue rather
+   than green or red - exporting is not an achievement and importing is not a
+   danger. The danger is named in the confirm dialog, where it applies. */
+.backup-actions {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.backup-button {
+  flex: 1;
+  background: transparent;
+  color: var(--blue);
+  border: 1px solid var(--blue);
+  padding: 11px 8px;
+  font-size: 13px;
+  letter-spacing: 1px;
+  cursor: pointer;
+}
+
+.backup-button:hover,
+.backup-button:active {
+  background: var(--blue);
+  color: var(--bg);
+}
+
+/* The file input is triggered by the button beside it and must never be seen,
+   but `display: none` makes it unfocusable in a way some browsers extend to
+   the programmatic click as well. Hidden by geometry instead. */
+.visually-hidden-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.storage-status {
+  font-size: 12px;
+  color: var(--text-dim);
+  line-height: 1.5;
+  margin: 10px 0 0 0;
+}
+
+.storage-status-ok {
+  color: var(--green);
+}
+
+.storage-recheck {
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--blue);
+  color: var(--blue);
+  font-family: inherit;
+  font-size: 12px;
+  letter-spacing: 1px;
+  padding: 0;
+  cursor: pointer;
+}
+
+/* The one place the app volunteers the subject, at the end of a period. Set
+   off by a rule above it so it reads as an aside to the summary rather than
+   as part of the result. */
+.summary-backup {
+  margin: 22px 0 18px 0;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.summary-backup-hint {
+  font-size: 13px;
+  color: var(--text-dim);
+  line-height: 1.5;
+  margin: 0;
+}
+
 .abandon-period-button {
   background: transparent;
   color: var(--red);
@@ -1772,16 +1715,6 @@ input, button, select, textarea {
     padding: 13px 14px;
   }
 
-  /* The dev tools get the same treatment - the motion debug panel in
-     particular is meant to be poked at on a phone. Removed with the rest of
-     them before deployment. */
-  .dev-reset-button,
-  .dev-clear-today-button,
-  .dev-trigger-summary-button,
-  .dev-debug-button {
-    padding: 12px 14px;
-  }
-
   .edit-total-link {
     padding: 16px 0 6px 0;
   }
@@ -1794,13 +1727,12 @@ input, button, select, textarea {
     padding: 14px 15px;
   }
 
-  .date-picker-button {
-    padding: 0 16px;
+  .backup-button {
+    padding: 14px 8px;
   }
 
-  .debug-button,
-  .debug-close {
-    padding: 10px 12px;
+  .date-picker-button {
+    padding: 0 16px;
   }
 
   .day-row {
@@ -1820,10 +1752,17 @@ input, button, select, textarea {
 /* Honour the OS-level setting. Value-driven animation is snapped in JS (see
    useAnimatedValue); this covers the CSS-driven motion. */
 @media (prefers-reduced-motion: reduce) {
+  .bar-fill,
   .bar-breathing,
   .bar-pulsing,
   .log-spend-sheet {
     animation: none !important;
+  }
+
+  /* The sheen is nothing but movement, so with motion off it goes away
+     rather than sitting frozen mid-sweep across the bar. */
+  .bar-fill::after {
+    display: none;
   }
 
   /* The particles are pure decoration and their whole existence is movement,

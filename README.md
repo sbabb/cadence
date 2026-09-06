@@ -48,6 +48,10 @@ through, never generated in advance.
   follows it, showing that day's figures and its historical limit.
 - **Rollover you can see.** Overspend and it tells you what tomorrow drops to —
   but only when the figure genuinely falls.
+- **Backup you own.** Export every period and logged day to a file, import it
+  back on another phone. There is no account and no server, so this is how a
+  history survives a new device — offered in Settings and again at the end of
+  each period, which is the natural moment to take a copy.
 - **Five themes**, switchable in Settings and applied instantly.
 - **Period history** you swipe back through, an end-of-period summary that
   states the facts without moralising, and a trends chart across every period —
@@ -72,6 +76,27 @@ npm run verify     # both suites below, no dependencies, plain node
 - `scripts/verify-engine.mjs` — 66 scenarios over the algorithm above.
 - `scripts/verify-themes.mjs` — contrast and colour-ramp checks for every
   theme. See *Themes* below for why this one isn't optional.
+- `scripts/verify-backup.mjs` — 27 checks on the backup format, most of them
+  about what it must *refuse*. Importing replaces everything, so a malformed
+  file being accepted is the one bug here that destroys data silently.
+
+## Installing it on a phone
+
+The build is path-agnostic (`base: './'`), so one build runs from a domain
+root, a project subpath like `/cadence/`, or a preview URL without being
+rebuilt. `.github/workflows/deploy.yml` publishes it to GitHub Pages on every
+push to `main` — enable it once under **Settings → Pages → Source → GitHub
+Actions**, and the verify suites gate every deploy.
+
+Open the resulting HTTPS address on a phone and install it: Chrome offers
+*Install app*, and Safari does it via *Share → Add to Home Screen*. **HTTPS is
+required** — a plain `http://` LAN address loads fine but will never offer a
+real install.
+
+Installing also matters for durability. Browsers treat ordinary site storage as
+disposable and may evict it under pressure; an installed app is normally
+granted persistent storage instead. The app asks for that automatically and
+reports the answer in Settings under *Backup*.
 
 ## Design
 
@@ -86,14 +111,23 @@ stays even — the same blend in RGB sags into a muddy olive at the midpoint. Th
 ramp is weighted rather than linear: green holds through 65% of the day's limit,
 because spending your allowance as intended shouldn't look like a warning.
 
-A faint field of 2–3px squares drifts up out of the bar and fades before it
-reaches the figure, in whatever colour the bar currently is. It is decoration
-and nothing else — it carries no data, sits behind every piece of text, and is
-removed outright under `prefers-reduced-motion`.
+A faint field of 2–3px squares drifts in place behind the figure, in whatever
+colour the bar currently is. Positions are randomised on every load rather than
+laid out by hand, so the field never reads as a pattern, and the column where
+the figure and its label sit is excluded outright, so a mote can never land on
+a letter. It is decoration and nothing else — it carries no data, sits behind
+every piece of text, and is removed outright under `prefers-reduced-motion`.
 
-Motion timings live in one exported table (`src/utils/motion.js`) that the
-in-app debug panel reads from, so the documented spec and the running animation
-can't drift apart. `prefers-reduced-motion` is honoured throughout.
+The fill itself carries two continuous, deliberately small pieces of motion: a
+slow brightness pulse and a band of light that crosses it. Both are there to
+keep the bar from looking like a static rectangle; neither means anything. The
+much more visible breathe on an unlogged day is separate, and does mean
+something.
+
+Motion timings live in one exported table (`src/utils/motion.js`), so the
+documented spec and the running animation can't drift apart. The CSS-driven
+animations repeat those numbers by hand, since CSS cannot read the table.
+`prefers-reduced-motion` is honoured throughout.
 
 ## Themes
 
@@ -153,8 +187,12 @@ src/
     themes.js          the five palettes and the token writer
     motion.js          durations and easing curves, single source of truth
     dateUtils.js       'YYYY-MM-DD' date maths
+  utils/
+    backup.js          backup envelope, validation, summaries — DOM-free
+    fileTransfer.js    saving a file out and reading one back in
   hooks/
     useBudgetData.js   localStorage state
+    usePersistentStorage.js  asks the browser not to evict that state
     useAnimatedValue.js  rAF interpolation
     useThemeColors.js  the active ramp colours, via context
     useKeyboardInset.js  visualViewport fallback for the on-screen keyboard
@@ -162,6 +200,7 @@ src/
 scripts/
   verify-engine.mjs    66 scenarios, run with plain node
   verify-themes.mjs    162 colour checks, likewise
+  verify-backup.mjs    27 backup-format checks, mostly rejections
 ```
 
 Everything is a pure recompute: the engine derives the whole period from its
@@ -174,11 +213,7 @@ React 18 with plain function components and hooks — no state library. Vite 7.
 JetBrains Mono (SIL Open Font License 1.1, free for commercial use), self-hosted
 rather than pulled from a CDN so the app looks right offline. `localStorage`
 only (key `budgetHabitTracker.v1`); nothing leaves the browser and there is no
-backend. A service worker caches the build so it runs with no network, and a web
-manifest plus icons make it installable to a home screen over HTTPS.
-
-## Note
-
-The dashboard carries four buttons prefixed `DEV:` — reset data, clear today's
-log, preview the period summary, and a motion debug panel. They are development
-scaffolding and are meant to be removed before any real deployment.
+backend — so a backup file is the only way data moves between devices, and
+export/import is a first-class feature rather than an afterthought. A service
+worker caches the build so it runs with no network, and a web manifest plus
+icons make it installable to a home screen over HTTPS.

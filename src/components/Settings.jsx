@@ -4,14 +4,16 @@ import { CADENCE_OPTIONS } from '../utils/cadence.js'
 import { entriesOutsideRange } from '../utils/budgetEngine.js'
 import { formatDisplayDate as fmt } from '../utils/dateUtils.js'
 import { THEMES } from '../utils/themes.js'
+import { parseBackup } from '../utils/backup.js'
+import { exportBackup, readTextFile } from '../utils/fileTransfer.js'
 import ConfirmDialog from './ConfirmDialog.jsx'
 
 // Reached from the dashboard's header (PeriodPager's "SETTINGS" button).
-// Four independent sections: editing the active period's amount/end date, the
-// optional pay-cadence preference, the colour theme, and abandoning the active
-// period early. Each is self-contained - editing the period and abandoning it
-// are mutually exclusive actions a user would take on separate visits, so
-// there is no shared form state between them.
+// Five independent sections: editing the active period's amount/end date, the
+// optional pay-cadence preference, the colour theme, backup, and abandoning
+// the active period early. Each is self-contained - editing the period and
+// abandoning it are mutually exclusive actions a user would take on separate
+// visits, so there is no shared form state between them.
 //
 // The destructive one stays last, on its own, below everything you might
 // actually have come here to do.
@@ -19,6 +21,10 @@ export default function Settings({
   period,
   cadence,
   theme,
+  rawData,
+  storageStatus,
+  onRecheckStorage,
+  onImportData,
   onUpdatePeriodDetails,
   onSetCadence,
   onSetTheme,
@@ -36,6 +42,15 @@ export default function Settings({
   const [hideConfirm, setHideConfirm] = useState(null)
 
   const endDateRef = useRef(null)
+  const fileInputRef = useRef(null)
+
+  // Backup state, kept apart from the period-editing state above: they are
+  // different errands and an error from one has no business appearing under
+  // the other.
+  const [backupNote, setBackupNote] = useState('')
+  const [backupError, setBackupError] = useState('')
+  // The validated contents of a chosen file, held while the user confirms.
+  const [pendingImport, setPendingImport] = useState(null)
 
   // Same "PICK DATE" affordance pattern used by PeriodSetup - see that
   // component for why this exists instead of relying on the tiny native
@@ -100,6 +115,48 @@ export default function Settings({
     } else {
       setSaved(true)
     }
+  }
+
+  const handleExport = async () => {
+    setBackupError('')
+    setBackupNote('')
+    const result = await exportBackup(rawData)
+    if (result === 'failed') {
+      setBackupError('Could not write the backup file. Try again, or use a different browser.')
+    } else if (result === 'shared') {
+      setBackupNote('Backup sent.')
+    } else if (result === 'downloaded') {
+      setBackupNote('Backup saved to your downloads.')
+    }
+    // 'cancelled' says nothing: backing out of the share sheet is a choice,
+    // not an error, and reporting it as one would be wrong.
+  }
+
+  const handleFileChosen = async (e) => {
+    const file = e.target.files && e.target.files[0]
+    // Cleared so that choosing the SAME file again still fires a change event
+    // - otherwise a failed import can't be retried without picking a
+    // different file first.
+    e.target.value = ''
+    if (!file) return
+    setBackupError('')
+    setBackupNote('')
+    try {
+      const parsed = parseBackup(await readTextFile(file))
+      if (!parsed.ok) {
+        setBackupError(parsed.error)
+        return
+      }
+      setPendingImport(parsed)
+    } catch {
+      setBackupError('Could not read that file.')
+    }
+  }
+
+  const handleImportConfirmed = () => {
+    const pending = pendingImport
+    setPendingImport(null)
+    onImportData(pending.data)
   }
 
   const handleAbandonConfirmed = () => {
@@ -213,6 +270,59 @@ export default function Settings({
       </section>
 
       <section className="settings-section">
+        <h2 className="settings-section-title">BACKUP</h2>
+        <p className="settings-section-hint">
+          Everything you log lives on this device only - nothing is sent anywhere, and there is no account to
+          sign back into. That is the trade for an app with no sign-up, and it means a backup file is the only
+          way your history survives a new phone or a cleared browser.
+        </p>
+        <div className="backup-actions">
+          <button type="button" className="backup-button" onClick={handleExport}>
+            EXPORT BACKUP
+          </button>
+          <button type="button" className="backup-button" onClick={() => fileInputRef.current?.click()}>
+            IMPORT BACKUP
+          </button>
+        </div>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="application/json,.json"
+          onChange={handleFileChosen}
+          className="visually-hidden-input"
+          tabIndex={-1}
+          aria-hidden="true"
+        />
+
+        {backupError && <p className="error-text">{backupError}</p>}
+        {backupNote && !backupError && <p className="settings-saved-text">{backupNote}</p>}
+
+        {/* Whether the browser has agreed to keep this data out of its
+            automatic cleanup. Worth saying plainly, because the answer is
+            actionable: installing the app to the home screen is usually what
+            flips it. */}
+        {storageStatus === 'granted' && (
+          <p className="storage-status storage-status-ok">
+            ✓ This browser is keeping your data safe from automatic cleanup.
+          </p>
+        )}
+        {storageStatus === 'denied' && (
+          <p className="storage-status">
+            This browser may clear your data if the device runs low on space. Installing Cadence to your home
+            screen usually earns it protected status.{' '}
+            <button type="button" className="storage-recheck" onClick={onRecheckStorage}>
+              CHECK AGAIN
+            </button>
+          </p>
+        )}
+        {storageStatus === 'unsupported' && (
+          <p className="storage-status">
+            This browser can&apos;t protect app data from automatic cleanup. Export a backup now and then.
+          </p>
+        )}
+      </section>
+
+      <section className="settings-section">
         <h2 className="settings-section-title">ABANDON CURRENT PERIOD</h2>
         <p className="settings-section-hint">
           Ends the current period today instead of on its scheduled end date, then walks through the usual period
@@ -244,6 +354,26 @@ export default function Settings({
             applyUpdate(pending)
           }}
           onCancel={() => setHideConfirm(null)}
+        />
+      )}
+
+      {pendingImport && (
+        <ConfirmDialog
+          message={
+            `This backup holds ${pendingImport.summary.periods} ` +
+            `${pendingImport.summary.periods === 1 ? 'period' : 'periods'} and ` +
+            `${pendingImport.summary.loggedDays} logged ` +
+            `${pendingImport.summary.loggedDays === 1 ? 'day' : 'days'}` +
+            (pendingImport.summary.earliest
+              ? `, ${fmt(pendingImport.summary.earliest)} to ${fmt(pendingImport.summary.latest)}`
+              : '') +
+            '. Importing REPLACES everything currently on this device, which cannot be undone.'
+          }
+          confirmLabel="REPLACE MY DATA"
+          cancelLabel="CANCEL"
+          danger
+          onConfirm={handleImportConfirmed}
+          onCancel={() => setPendingImport(null)}
         />
       )}
 

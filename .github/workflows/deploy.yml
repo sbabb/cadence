@@ -1,0 +1,60 @@
+# Builds Cadence and publishes it to GitHub Pages on every push to main.
+#
+# One-time setup in the repo: Settings -> Pages -> Source -> "GitHub Actions".
+# After that this runs by itself and the app is live at
+# https://<user>.github.io/cadence/ a minute or two after each push.
+#
+# The verify step is here on purpose: the engine, theme and backup checks all
+# run before anything is published, so a build that breaks the numbers or the
+# backup format never reaches a phone.
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  # Lets you re-publish from the Actions tab without making a commit.
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# A queued deploy replaces a running one rather than racing it.
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - name: Verify engine, themes and backup format
+        run: npm run verify
+
+      - run: npm run build
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

@@ -1,10 +1,11 @@
-// Every timing and curve the dial uses, defined once, in one place.
+// Every timing and curve the bar uses, defined once, in one place.
 //
 // This is deliberately a data table rather than values scattered through the
-// components: the debug panel reads straight from it, so what you see on
-// screen and what the panel reports can never drift apart. It also means the
-// whole motion spec can be read off in one screen and retyped into Rive's
-// interpolation panel without hunting through CSS.
+// components: the whole motion spec can be read off in one screen and retyped
+// into Rive's interpolation panel without hunting through CSS. The CSS-driven
+// animations in index.css are kept in step with it by hand - the durations
+// there are the same numbers written again, because CSS cannot read this
+// file.
 //
 // Curves are cubic-bezier control points, same four numbers Rive and CSS both
 // take. Two families are in use:
@@ -68,12 +69,6 @@ export const MOTION = {
     easing: [0.34, 1.56, 0.64, 1],
     note: 'One shot, fires only on the transition from under to over. Never repeats while over'
   }
-}
-
-// Formats a curve the way CSS and Rive both want to see it, for the debug
-// panel's readout.
-export function formatEasing(easing) {
-  return `cubic-bezier(${easing.map((n) => String(n)).join(', ')})`
 }
 
 // Solves a cubic bezier curve for y given x, the same way browsers do for CSS

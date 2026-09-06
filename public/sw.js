@@ -17,12 +17,20 @@
 //
 // Bump CACHE_VERSION to evict everything on the next load.
 
-const CACHE_VERSION = 'cadence-v1'
+// Bumped when the cache's SHAPE changes, not just its contents - v2 keys the
+// app shell by the worker's own scope rather than by the origin root, so v1
+// entries would be looked up under URLs this version never writes.
+const CACHE_VERSION = 'cadence-v2'
+
+// Where this copy of the app actually lives - "https://host/" at a domain
+// root, "https://host/cadence/" under a project path. Everything below is
+// relative to it, so one build is installable from anywhere.
+const APP_SHELL = self.registration.scope
 
 self.addEventListener('install', (event) => {
   // Take over immediately rather than waiting for every old tab to close.
   self.skipWaiting()
-  event.waitUntil(caches.open(CACHE_VERSION).then((cache) => cache.addAll(['/'])))
+  event.waitUntil(caches.open(CACHE_VERSION).then((cache) => cache.addAll([APP_SHELL])))
 })
 
 self.addEventListener('activate', (event) => {
@@ -47,7 +55,7 @@ self.addEventListener('fetch', (event) => {
           caches.open(CACHE_VERSION).then((cache) => cache.put(request, copy))
           return response
         })
-        .catch(() => caches.match(request).then((hit) => hit || caches.match('/')))
+        .catch(() => caches.match(request).then((hit) => hit || caches.match(APP_SHELL)))
     )
     return
   }

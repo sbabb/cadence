@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import useBudgetData from './hooks/useBudgetData'
+import usePersistentStorage from './hooks/usePersistentStorage.js'
 import { ThemeColorsContext } from './hooks/useThemeColors.js'
 import { applyTheme, getTheme, rampColorsFor } from './utils/themes.js'
 import { formatDisplayDateWithDay, daysBetweenInclusive } from './utils/dateUtils.js'
@@ -43,13 +44,17 @@ export default function App() {
     startFirstPeriod,
     logSpendForDate,
     addSpendToToday,
-    resetAllData,
-    clearTodayLog,
+    replaceAllData,
+    rawData,
     setCadence,
     setTheme,
     updatePeriodDetails,
     abandonCurrentPeriod
   } = useBudgetData()
+
+  // Ask the browser to keep this app's storage out of its automatic cleanup,
+  // but only once there is a period worth protecting - see the hook.
+  const { status: storageStatus, retry: recheckStorage } = usePersistentStorage(periods.length > 0)
 
   // main.jsx has already painted the stored theme before this component ever
   // rendered; this effect is what keeps it current afterwards, when the user
@@ -85,10 +90,6 @@ export default function App() {
       setEndFlowStep(null)
     }
   }, [periodEnded])
-
-  // DEV TOOL: forces the PeriodSummary screen open for the active period
-  // regardless of whether it's actually ended. Remove alongside its button.
-  const [devForceSummary, setDevForceSummary] = useState(false)
 
   const [showTrends, setShowTrends] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
@@ -142,7 +143,6 @@ export default function App() {
   const goHome = () => {
     setShowTrends(false)
     setShowSettings(false)
-    setDevForceSummary(false)
     setEditingDate(null)
     setHomeNonce((n) => n + 1)
   }
@@ -150,6 +150,20 @@ export default function App() {
   const handleSummaryContinue = () => {
     const gapDays = currentPeriod ? daysBetweenInclusive(currentPeriod.endDate, today) - 1 : 0
     setEndFlowStep(gapDays >= LAPSED_THRESHOLD_DAYS ? 'lapsed' : 'setup')
+  }
+
+  // Settings -> Import Backup. The file has already been validated and the
+  // user has already confirmed the replace; what is left is putting the app
+  // back into a sane resting state around the new data, since whatever was on
+  // screen a moment ago referred to periods that no longer exist.
+  const handleImportData = (next) => {
+    replaceAllData(next)
+    setEndFlowStep(null)
+    setEditingDate(null)
+    setViewIndex(Math.max(0, next.periods.length - 1))
+    setShowSettings(false)
+    setShowTrends(false)
+    setHomeNonce((n) => n + 1)
   }
 
   // Settings -> Abandon Current Period: truncates the active period's end
@@ -189,7 +203,14 @@ export default function App() {
   if (needsOnboarding) {
     screen = <Onboarding today={today} onComplete={startFirstPeriod} />
   } else if (endFlowStep === 'summary' && !sheetOpen) {
-    screen = <PeriodSummary period={currentPeriod} reconciled={reconciled} onContinue={handleSummaryContinue} />
+    screen = (
+      <PeriodSummary
+        period={currentPeriod}
+        reconciled={reconciled}
+        rawData={rawData}
+        onContinue={handleSummaryContinue}
+      />
+    )
   } else if (endFlowStep === 'lapsed' && !sheetOpen) {
     const gapDays = daysBetweenInclusive(currentPeriod.endDate, today) - 1
     screen = <LapsedNotice gapDays={gapDays} onContinue={() => setEndFlowStep('setup')} />
@@ -202,15 +223,6 @@ export default function App() {
         initialDates={nextPeriodDates}
         initialAmount={nextPeriodAmount}
         onStart={handleStartPeriod}
-      />
-    )
-  } else if (devForceSummary) {
-    screen = (
-      <PeriodSummary
-        period={currentPeriod}
-        reconciled={reconciled}
-        onContinue={() => setDevForceSummary(false)}
-        devForced
       />
     )
   } else if (showTrends) {
@@ -231,6 +243,10 @@ export default function App() {
         period={currentPeriod}
         cadence={cadence}
         theme={theme}
+        rawData={rawData}
+        storageStatus={storageStatus}
+        onRecheckStorage={recheckStorage}
+        onImportData={handleImportData}
         onUpdatePeriodDetails={updatePeriodDetails}
         onSetCadence={setCadence}
         onSetTheme={setTheme}
@@ -255,9 +271,6 @@ export default function App() {
           previousDayLimit={previousDayLimit}
           onLogForDate={openLogForDate}
           homeNonce={homeNonce}
-          onResetAll={resetAllData}
-          onClearTodayLog={clearTodayLog}
-          onTriggerSummary={() => setDevForceSummary(true)}
       />
     )
   }

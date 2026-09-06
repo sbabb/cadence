@@ -204,9 +204,9 @@ export function reconcilePeriod(period, todayStr) {
 // Rolls a period's reconciled entries up into the handful of aggregate
 // numbers an end-of-period recap or a trend chart needs. Pure and works
 // identically whether the period has actually ended (reconciled with the
-// real "today", past its endDate) or is still in progress (used by the
-// DEV: TRIGGER PERIOD SUMMARY preview) - it only ever looks at whatever
-// entries reconcilePeriod already finalized, never at unlogged days.
+// real "today", past its endDate) or is still in progress - it only ever
+// looks at whatever entries reconcilePeriod already finalized, never at
+// unlogged days.
 export function summarizePeriod(period, reconciled) {
   const loggedEntries = reconciled.entries
   let totalSpent = 0

@@ -1,16 +1,28 @@
+import { useState } from 'react'
 import { formatDisplayDateWithDay } from '../utils/dateUtils.js'
 import { formatMoney } from '../utils/format.js'
 import { summarizePeriod } from '../utils/budgetEngine.js'
+import { exportBackup } from '../utils/fileTransfer.js'
 
-// Shown two ways: (1) automatically, once, right after a period's end date
-// passes and before the new-period prompt - the natural end-of-period
-// recap; (2) on demand via the "DEV: TRIGGER PERIOD SUMMARY" button, which
-// previews this same screen for the still-in-progress active period so the
-// UI can be checked without waiting for a period to actually end
-// (`devForced`). Either way the numbers come from the same pure
-// summarizePeriod() helper - factual, no guilt-tripping language.
-export default function PeriodSummary({ period, reconciled, onContinue, devForced }) {
+// Shown once, automatically, right after a period's end date passes and
+// before the new-period prompt - the natural end-of-period recap. The numbers
+// come from the pure summarizePeriod() helper: factual, no guilt-tripping
+// language.
+export default function PeriodSummary({ period, reconciled, rawData, onContinue }) {
   const summary = summarizePeriod(period, reconciled)
+  const [backupNote, setBackupNote] = useState('')
+
+  // Offered here because this is the one moment the app knows something has
+  // just been completed - a period closing is the natural time to take a
+  // copy, and it is the only prompt of its kind in the app. Stated as a fact
+  // about how the app stores things, not as a warning, and skipping it costs
+  // nothing but a tap on CONTINUE.
+  const handleExport = async () => {
+    const result = await exportBackup(rawData)
+    if (result === 'failed') setBackupNote('Could not write the backup file.')
+    else if (result === 'shared') setBackupNote('Backup sent.')
+    else if (result === 'downloaded') setBackupNote('Backup saved to your downloads.')
+  }
   const { totalSpent, totalBudget, daysTracked, daysOver, daysUnder, daysAtLimit, remaining } = summary
 
   let assessment
@@ -31,7 +43,7 @@ export default function PeriodSummary({ period, reconciled, onContinue, devForce
 
   return (
     <div className="screen summary-screen">
-      <h1 className="screen-title">{devForced ? 'PERIOD SUMMARY (PREVIEW)' : 'PERIOD SUMMARY'}</h1>
+      <h1 className="screen-title">PERIOD SUMMARY</h1>
       <p className="summary-range">
         {formatDisplayDateWithDay(period.startDate)} -&gt; {formatDisplayDateWithDay(period.endDate)}
       </p>
@@ -69,8 +81,18 @@ export default function PeriodSummary({ period, reconciled, onContinue, devForce
 
       <div className={`summary-assessment ${assessmentClass}`}>{assessment}</div>
 
+      <div className="summary-backup">
+        <p className="summary-backup-hint">
+          Your history lives on this device only. A good moment to keep a copy.
+        </p>
+        <button type="button" className="backup-button" onClick={handleExport}>
+          EXPORT BACKUP
+        </button>
+        {backupNote && <p className="settings-saved-text">{backupNote}</p>}
+      </div>
+
       <button className="primary-button" onClick={onContinue}>
-        {devForced ? 'CLOSE' : 'CONTINUE'}
+        CONTINUE
       </button>
     </div>
   )

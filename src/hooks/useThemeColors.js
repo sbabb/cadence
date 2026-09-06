@@ -4,9 +4,8 @@ import { DEFAULT_RAMP_COLORS } from '../utils/color.js'
 // The active theme's four ramp colours, published to whoever needs them.
 //
 // The bar's colour is computed in JavaScript rather than CSS - the OKLCH
-// interpolation has no CSS equivalent, and the debug panel needs the resolved
-// hex as a value it can print - so those four colours have to reach the
-// components as data. Two things rule out the obvious alternatives:
+// interpolation has no CSS equivalent - so those four colours have to reach
+// the components as data. Two things rule out the obvious alternatives:
 //
 //   - A module-level variable set from an effect would be written AFTER the
 //     render that changed the theme, so the bar would spend one frame drawn in

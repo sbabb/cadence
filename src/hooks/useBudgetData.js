@@ -203,23 +203,23 @@ export default function useBudgetData() {
     [today]
   )
 
-  // DEV TOOL: wipes every period/entry this app has ever stored and drops
-  // the user straight back to Period Setup. Not part of the real product -
-  // wired up only so the dashboard's "DEV: RESET ALL DATA" button has
-  // something to call; remove alongside that button before shipping.
-  const resetAllData = useCallback(() => {
-    try {
-      localStorage.clear()
-    } catch (err) {
-      console.error('Failed to clear localStorage:', err)
-    }
-    // The theme survives a reset. It's a display preference, not budget data,
-    // and having the app change colour because you cleared your test entries
-    // would read as a bug.
-    setData((prev) => ({
-      periods: [],
-      settings: { ...DEFAULT_SETTINGS, theme: prev.settings.theme }
-    }))
+  // Swaps in a whole restored dataset, from an imported backup file.
+  //
+  // A wholesale replace rather than a merge, and that is a decision rather
+  // than a shortcut. Merging would have to answer what happens when the file
+  // and the device both have a period covering the same fortnight with
+  // different numbers in it, and there is no answer to that which is right
+  // often enough to apply without asking. Replace is a thing a person can
+  // predict, which matters more here than being clever - the confirm dialog
+  // in front of it says exactly what is about to happen.
+  //
+  // The caller has already validated the shape (see utils/backup.js); this
+  // trusts it, and the normal persist effect writes it to storage.
+  const replaceAllData = useCallback((next) => {
+    setData({
+      periods: next.periods,
+      settings: { ...DEFAULT_SETTINGS, ...next.settings }
+    })
   }, [])
 
   // Persists the user's optional pay-cadence preference (Settings screen).
@@ -330,30 +330,6 @@ export default function useBudgetData() {
     [today]
   )
 
-  // DEV TOOL: removes ONLY today's logged entry (if any) - the single
-  // running-total record that addSpendToToday/logSpendForDate maintain -
-  // leaving the period's dates, discretionary amount, and every other
-  // day's entries untouched. This wipes the entire accumulated total back
-  // to nothing (today returns to its NOT LOGGED state), not just today's
-  // most recent tap. No confirmation needed - unlike the full reset, this
-  // only ever affects the one entry the user is actively iterating on
-  // while testing. Remove alongside the "DEV: CLEAR TODAY'S LOG" button
-  // before shipping.
-  const clearTodayLog = useCallback(() => {
-    setData((prev) => {
-      const periods = prev.periods
-      if (periods.length === 0) return prev
-      const lastIdx = periods.length - 1
-      const period = periods[lastIdx]
-      const existingEntries = period.entries || []
-      if (!existingEntries.some((e) => e.date === today)) return prev
-      const updatedEntries = existingEntries.filter((e) => e.date !== today)
-      const updatedPeriod = { ...period, entries: updatedEntries }
-      const nextPeriods = periods.map((p, idx) => (idx === lastIdx ? updatedPeriod : p))
-      return { ...prev, periods: nextPeriods }
-    })
-  }, [today])
-
   const todayInfo = reconciled ? reconciled.todayInfo : null
   const periodEnded = reconciled ? reconciled.periodEnded : false
 
@@ -406,8 +382,10 @@ export default function useBudgetData() {
     startFirstPeriod,
     logSpendForDate,
     addSpendToToday,
-    resetAllData,
-    clearTodayLog,
+    replaceAllData,
+    // The raw stored shape, for the backup export. Everything else on this
+    // object is derived; this is the thing that actually gets written.
+    rawData: data,
     setCadence,
     setTheme,
     updatePeriodDetails,

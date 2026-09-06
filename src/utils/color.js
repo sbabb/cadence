@@ -182,12 +182,6 @@ function compiledRamp(colors) {
   return compiled
 }
 
-// The ramp's stops as the debug panel wants to display them: position, hex,
-// and the name of the colour at that position.
-export function rampStops(colors) {
-  return compiledRamp(colors).stops.map(({ at, hex, label }) => ({ at, hex, label }))
-}
-
 // spentFraction: the day's spend as a fraction of the day's limit. 0 = nothing
 // spent, 1 = exactly at the limit, >1 = over. Returns an OKLCH color.
 export function rampOklch(spentFraction, colors) {
