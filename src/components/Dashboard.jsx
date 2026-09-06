@@ -191,8 +191,9 @@ export default function Dashboard({
           </div>
           {limitDelta !== null && (
             <div className={`stat-delta ${limitDelta > 0 ? 'stat-delta-up' : 'stat-delta-down'}`}>
-              {limitDelta > 0 ? '▲' : '▼'}
-              {formatMoney(Math.abs(limitDelta))} vs yesterday
+              <span className="stat-delta-arrow">{limitDelta > 0 ? '▲' : '▼'}</span>
+              {formatMoney(Math.abs(limitDelta))}
+              <span className="stat-delta-note">vs yesterday</span>
             </div>
           )}
         </div>

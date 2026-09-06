@@ -1,6 +1,8 @@
 import { useRef, useState } from 'react'
 import { formatDisplayDate } from '../utils/dateUtils.js'
 import { CADENCE_OPTIONS } from '../utils/cadence.js'
+import { entriesOutsideRange } from '../utils/budgetEngine.js'
+import { formatDisplayDate as fmt } from '../utils/dateUtils.js'
 import { THEMES } from '../utils/themes.js'
 import ConfirmDialog from './ConfirmDialog.jsx'
 
@@ -28,6 +30,10 @@ export default function Settings({
   const [error, setError] = useState('')
   const [saved, setSaved] = useState(false)
   const [abandonConfirmOpen, setAbandonConfirmOpen] = useState(false)
+  // Set to the pending {initialAmount, endDate} when saving would push logged
+  // days outside the period, so the confirm dialog has something to apply
+  // once the user says yes.
+  const [hideConfirm, setHideConfirm] = useState(null)
 
   const endDateRef = useRef(null)
 
@@ -74,7 +80,21 @@ export default function Settings({
       return
     }
 
-    const result = onUpdatePeriodDetails({ initialAmount: amount, endDate })
+    // Shrinking the end date past days that were already logged doesn't
+    // delete them - they stay in storage and return if the range is widened -
+    // but they disappear from every screen, which is not something to do to
+    // someone without asking.
+    const orphaned = entriesOutsideRange(period, period.startDate, endDate)
+    if (orphaned.length > 0) {
+      setHideConfirm({ initialAmount: amount, endDate, dates: orphaned })
+      return
+    }
+
+    applyUpdate({ initialAmount: amount, endDate })
+  }
+
+  const applyUpdate = ({ initialAmount, endDate: newEndDate }) => {
+    const result = onUpdatePeriodDetails({ initialAmount, endDate: newEndDate })
     if (result) {
       setError(result)
     } else {
@@ -206,6 +226,26 @@ export default function Settings({
       <button className="cancel-button" onClick={onBack}>
         ‹ BACK TO DASHBOARD
       </button>
+
+      {hideConfirm && (
+        <ConfirmDialog
+          message={
+            `${hideConfirm.dates.length} logged ${hideConfirm.dates.length === 1 ? 'day' : 'days'} ` +
+            `(${hideConfirm.dates.slice(0, 3).map(fmt).join(', ')}` +
+            `${hideConfirm.dates.length > 3 ? `, +${hideConfirm.dates.length - 3} more` : ''}) ` +
+            'fall outside the new dates and will stop appearing. Nothing is deleted — widening the ' +
+            'period again brings them back.'
+          }
+          confirmLabel="SAVE ANYWAY"
+          cancelLabel="CANCEL"
+          onConfirm={() => {
+            const pending = hideConfirm
+            setHideConfirm(null)
+            applyUpdate(pending)
+          }}
+          onCancel={() => setHideConfirm(null)}
+        />
+      )}
 
       {abandonConfirmOpen && (
         <ConfirmDialog

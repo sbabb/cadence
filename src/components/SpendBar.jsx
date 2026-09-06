@@ -10,36 +10,47 @@ import useThemeColors from '../hooks/useThemeColors.js'
 // carries the magnitude, the same rule the ring used.
 const OVERAGE_CAP = 1
 
-// The rising field behind the figure. Reverse rain: sharp little squares
-// drifting up out of the bar and fading before they reach the readout.
+// The mote field behind the figure. Ambient texture, nothing more.
 //
-// Fixed rather than randomised on each mount, for two reasons. A field
-// regenerated every render would reshuffle itself every time a number
-// animated, which is the opposite of ambient. And a hand-placed set can be
-// checked: the x positions are irregular enough not to read as a grid, and no
-// rise exceeds the height of the block above the bar, so nothing escapes past
-// the figure and needs clipping.
+// These used to rise out of the bar, which had a problem the user spotted: the
+// column of motes spanned the full track width regardless of how much fill was
+// actually there, so the motion implied a relationship to the data that did not
+// exist. Reading them as "steam off the bar" only worked when the bar was full.
+// Drifting in place says what is true - this is flair, not information.
 //
-// Everything here is data for CSS - position, travel, size, timing, peak
-// opacity - handed over as custom properties. The colour isn't listed because
-// it isn't per-particle: they all inherit --bar-color, which is the same value
-// driving the fill and the figure, so the field is always exactly the colour
-// of the number it sits behind.
+// Fixed rather than randomised per render, so the field does not reshuffle
+// itself every time a number animates.
+//
+// Each mote runs TWO animations at different durations: a slow positional
+// drift and a separate opacity twinkle. Because the periods don't divide into
+// each other, the pair takes a long time to return to the same combined state,
+// so the loop never announces itself the way a single keyframe track would.
+//
+// Everything here is data for CSS - position, drift vector, sizes, timings,
+// peak opacity. Colour is absent because it isn't per-mote: they all inherit
+// --bar-color, so the field is always the colour of the figure it sits behind.
 const PARTICLES = [
-  { x: 4, rise: 46, size: 3, dur: 3200, delay: 0, peak: 0.3 },
-  { x: 11, rise: 34, size: 2, dur: 2600, delay: 900, peak: 0.24 },
-  { x: 18, rise: 58, size: 3, dur: 3800, delay: 400, peak: 0.32 },
-  { x: 25, rise: 28, size: 2, dur: 2200, delay: 1700, peak: 0.22 },
-  { x: 32, rise: 50, size: 3, dur: 3400, delay: 1100, peak: 0.28 },
-  { x: 38, rise: 38, size: 2, dur: 2900, delay: 200, peak: 0.26 },
-  { x: 45, rise: 62, size: 3, dur: 4000, delay: 2100, peak: 0.3 },
-  { x: 52, rise: 32, size: 2, dur: 2500, delay: 700, peak: 0.22 },
-  { x: 59, rise: 48, size: 3, dur: 3600, delay: 1500, peak: 0.28 },
-  { x: 66, rise: 36, size: 2, dur: 2800, delay: 300, peak: 0.24 },
-  { x: 72, rise: 56, size: 3, dur: 3700, delay: 1900, peak: 0.3 },
-  { x: 79, rise: 30, size: 2, dur: 2400, delay: 1300, peak: 0.22 },
-  { x: 87, rise: 52, size: 3, dur: 3300, delay: 600, peak: 0.28 },
-  { x: 94, rise: 40, size: 2, dur: 3000, delay: 2400, peak: 0.26 }
+  // The y values are not free. The readout is figure on top (roughly the first
+  // 59%), label under it (to 87%), then the gap above the bar. Out at the
+  // edges a mote can sit anywhere, because there is no type there - but in the
+  // centre column, where the figure and the label actually are, a 3px square
+  // landing on a letter stroke stops looking like atmosphere and starts
+  // looking like a dead pixel. So the middle of the field is kept down in the
+  // band just above the bar, where it can drift freely without touching text.
+  { x: 4, y: 58, size: 3, dx: 4, dy: -5, drift: 7200, twinkle: 4300, delay: 0, peak: 0.3 },
+  { x: 11, y: 26, size: 2, dx: -3, dy: 4, drift: 6100, twinkle: 3500, delay: 900, peak: 0.22 },
+  { x: 18, y: 80, size: 2, dx: 5, dy: 3, drift: 8300, twinkle: 5200, delay: 2400, peak: 0.26 },
+  { x: 25, y: 44, size: 3, dx: -4, dy: -3, drift: 6800, twinkle: 3900, delay: 1300, peak: 0.28 },
+  { x: 31, y: 14, size: 2, dx: 3, dy: -4, drift: 7600, twinkle: 4700, delay: 400, peak: 0.24 },
+  { x: 38, y: 89, size: 2, dx: -5, dy: 3, drift: 9100, twinkle: 3300, delay: 3100, peak: 0.2 },
+  { x: 45, y: 95, size: 3, dx: 4, dy: 4, drift: 6400, twinkle: 5600, delay: 1800, peak: 0.28 },
+  { x: 53, y: 87, size: 2, dx: -3, dy: -5, drift: 8700, twinkle: 4100, delay: 600, peak: 0.22 },
+  { x: 61, y: 93, size: 2, dx: 5, dy: -3, drift: 7000, twinkle: 3700, delay: 2700, peak: 0.26 },
+  { x: 68, y: 32, size: 3, dx: -4, dy: 4, drift: 8000, twinkle: 5000, delay: 1100, peak: 0.28 },
+  { x: 75, y: 68, size: 2, dx: 3, dy: 5, drift: 6600, twinkle: 4500, delay: 3400, peak: 0.2 },
+  { x: 82, y: 18, size: 2, dx: -5, dy: -4, drift: 8900, twinkle: 3100, delay: 200, peak: 0.24 },
+  { x: 89, y: 50, size: 3, dx: 4, dy: 3, drift: 7400, twinkle: 5400, delay: 2000, peak: 0.28 },
+  { x: 96, y: 78, size: 2, dx: -3, dy: -4, drift: 6900, twinkle: 4900, delay: 1500, peak: 0.22 }
 ]
 
 // The spend bar. Replaces the dial, which was legible but cost 196px of
@@ -71,13 +82,29 @@ export default function SpendBar({
   const rampColors = useThemeColors()
 
   const safeLimit = limit > 0 ? limit : 0
-  const spentFraction = safeLimit > 0 ? spent / safeLimit : 0
   const isOver = spent > safeLimit
   const remaining = safeLimit - spent
   const overage = isOver ? spent - safeLimit : 0
 
+  // A limit of zero is a real state, not a missing value: overspend early
+  // enough and the engine correctly says there is nothing left to spend
+  // today. Dividing by it isn't an option, so the two cases are named
+  // outright. Getting this wrong was visible - treating the fraction as 0
+  // put a GREEN figure directly above the words "over today", because zero
+  // spent-fraction is the top of the ramp.
+  //
+  //   nothing spent against a zero limit -> exactly at the limit (1.0): the
+  //     bar empties and goes red, which is true, you have nothing.
+  //   anything spent against a zero limit -> as far past the limit as the
+  //     ramp goes (2.0): deepest red, and the overage bar fills completely,
+  //     because "infinitely over" has no smaller honest depiction.
+  const zeroLimit = safeLimit === 0
+  const spentFraction = zeroLimit ? (spent > 0 ? 2 : 1) : spent / safeLimit
+
   const fillFraction = isOver
-    ? Math.min(OVERAGE_CAP, safeLimit > 0 ? overage / safeLimit : 0)
+    ? zeroLimit
+      ? OVERAGE_CAP
+      : Math.min(OVERAGE_CAP, overage / safeLimit)
     : Math.max(0, 1 - spentFraction)
 
   // ---- entry sequencing -------------------------------------------------
@@ -213,10 +240,13 @@ export default function SpendBar({
                   className="bar-particle"
                   style={{
                     left: `${p.x}%`,
+                    top: `${p.y}%`,
                     width: p.size,
                     height: p.size,
-                    '--rise': `${-p.rise}px`,
-                    '--dur': `${p.dur}ms`,
+                    '--dx': `${p.dx}px`,
+                    '--dy': `${p.dy}px`,
+                    '--drift': `${p.drift}ms`,
+                    '--twinkle': `${p.twinkle}ms`,
                     '--delay': `${p.delay}ms`,
                     '--peak': p.peak
                   }}

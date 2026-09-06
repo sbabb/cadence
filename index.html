@@ -12,7 +12,16 @@
          maximum-scale is deliberately gone: pinch-zoom is an accessibility
          feature and blocking it never fixed anything here. -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, interactive-widget=resizes-content" />
-    <link rel="icon" href="data:," />
+    <link rel="icon" href="/icons/icon-48.png" />
+    <!-- Installing to a home screen: the manifest names the app and supplies
+         the icons, apple-touch-icon covers iOS, which ignores the manifest's.
+         Both need the app served over HTTPS (or localhost) to take effect -
+         a plain http:// LAN address will not offer a real install. -->
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="/icons/icon-180.png" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Cadence" />
     <!-- Kept in sync with the active theme's --bg at runtime (themes.js). -->
     <meta name="theme-color" content="#1a1b26" />
     <title>Cadence</title>

@@ -21,21 +21,33 @@ import './index.css'
 // enough to beat the first paint, and it fails silently to the default if
 // storage is unavailable or the saved blob is malformed.
 function bootTheme() {
-  let id = DEFAULT_THEME
+  let theme = DEFAULT_THEME
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
     if (raw) {
-      const parsed = JSON.parse(raw)
-      if (parsed && parsed.settings && parsed.settings.theme) id = parsed.settings.theme
+      const s = JSON.parse(raw)?.settings
+      if (s?.theme) theme = s.theme
     }
   } catch {
     // Private-mode storage, quota errors, corrupted JSON - all mean "use the
     // default", and none of them should stop the app rendering.
   }
-  applyTheme(getTheme(id))
+  applyTheme(getTheme(theme))
 }
 
 bootTheme()
+
+// Register the service worker in production builds only. In dev it would sit
+// between Vite and the browser caching things Vite is actively replacing,
+// which turns every edit into a mystery.
+if (import.meta.env.PROD && 'serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch((err) => {
+      // Not fatal - the app works fine without it, just not offline.
+      console.warn('Service worker registration failed:', err)
+    })
+  })
+}
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>

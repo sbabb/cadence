@@ -14,28 +14,49 @@ import {
 export const STORAGE_KEY = 'budgetHabitTracker.v1'
 const DEFAULT_SETTINGS = { cadence: 'manual', theme: DEFAULT_THEME }
 
+const EMPTY = () => ({ periods: [], settings: { ...DEFAULT_SETTINGS } })
+
+// Returns the data AND whether reading it went wrong, because those are two
+// different situations that used to look identical from the outside.
+//
+// Having never used the app and having lost the file both produced an empty
+// state, which the app then presents as the onboarding screen - so a user
+// whose storage had been cleared or corrupted was shown a cheerful "let's set
+// up your first period" and left to conclude the app had thrown their history
+// away without comment. `unreadable` distinguishes them so the UI can say so.
 function loadData() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
-    if (!raw) return { periods: [], settings: { ...DEFAULT_SETTINGS } }
+    if (!raw) return { data: EMPTY(), unreadable: false }
     const parsed = JSON.parse(raw)
-    if (!parsed || !Array.isArray(parsed.periods)) return { periods: [], settings: { ...DEFAULT_SETTINGS } }
+    if (!parsed || !Array.isArray(parsed.periods)) {
+      // Present but not what we wrote - that is data loss, not a fresh start.
+      return { data: EMPTY(), unreadable: true }
+    }
     const parsedSettings = parsed.settings && typeof parsed.settings === 'object' ? parsed.settings : {}
     return {
-      periods: parsed.periods,
-      settings: { ...DEFAULT_SETTINGS, ...parsedSettings }
+      data: { periods: parsed.periods, settings: { ...DEFAULT_SETTINGS, ...parsedSettings } },
+      unreadable: false
     }
   } catch (err) {
     console.error('Failed to load budget data from localStorage:', err)
-    return { periods: [], settings: { ...DEFAULT_SETTINGS } }
+    return { data: EMPTY(), unreadable: true }
   }
 }
 
+// Reports success rather than swallowing the failure.
+//
+// This is the worst thing that can quietly go wrong in an app with no backend:
+// storage full, storage disabled, or a private context that refuses writes, and
+// every spend logged for the rest of the day evaporates on reload. It used to
+// log to a console no phone user will ever open.
 function persistData(data) {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data))
+    return true
   } catch (err) {
     console.error('Failed to save budget data to localStorage:', err)
+    return false
   }
 }
 
@@ -44,7 +65,14 @@ function makePeriodId() {
 }
 
 export default function useBudgetData() {
-  const [data, setData] = useState(loadData)
+  const initial = useState(loadData)[0]
+  const [data, setData] = useState(initial.data)
+
+  // null when storage is behaving. 'read' means what was there could not be
+  // parsed; 'write' means a save has failed and anything logged since is only
+  // in memory. Dismissible, but re-armed by the next failure.
+  const [storageError, setStorageError] = useState(initial.unreadable ? 'read' : null)
+  const dismissStorageError = useCallback(() => setStorageError(null), [])
   const [today, setToday] = useState(todayStr())
   // A coarse ticking clock. The final day of a period counts down in hours
   // rather than reporting "1 day", which needs the current time and not just
@@ -52,10 +80,31 @@ export default function useBudgetData() {
   // display and costs nothing.
   const [now, setNow] = useState(() => new Date())
 
-  // Persist to localStorage any time the data changes.
+  // Persist to localStorage any time the data changes. A failed write is
+  // surfaced rather than logged; a later successful one clears the warning,
+  // since whatever was wrong has evidently passed.
   useEffect(() => {
-    persistData(data)
+    const ok = persistData(data)
+    setStorageError((prev) => (ok ? (prev === 'write' ? null : prev) : 'write'))
   }, [data])
+
+  // Another tab (or another window) writing the same key. Without this the two
+  // copies drift apart and whichever saves last silently discards the other's
+  // work; with it, both converge on what is actually stored. The event only
+  // fires in OTHER documents, so this cannot loop with the effect above.
+  useEffect(() => {
+    const onStorage = (e) => {
+      if (e.key !== STORAGE_KEY || e.newValue === null) return
+      const { data: next, unreadable } = loadData()
+      if (unreadable) {
+        setStorageError('read')
+        return
+      }
+      setData(next)
+    }
+    window.addEventListener('storage', onStorage)
+    return () => window.removeEventListener('storage', onStorage)
+  }, [])
 
   // Keep "today" accurate if the app is left open across midnight, and keep
   // the clock moving for the final-day countdown. Both read the DEVICE's local
@@ -167,7 +216,10 @@ export default function useBudgetData() {
     // The theme survives a reset. It's a display preference, not budget data,
     // and having the app change colour because you cleared your test entries
     // would read as a bug.
-    setData((prev) => ({ periods: [], settings: { ...DEFAULT_SETTINGS, theme: prev.settings.theme } }))
+    setData((prev) => ({
+      periods: [],
+      settings: { ...DEFAULT_SETTINGS, theme: prev.settings.theme }
+    }))
   }, [])
 
   // Persists the user's optional pay-cadence preference (Settings screen).
@@ -337,6 +389,8 @@ export default function useBudgetData() {
   return {
     today,
     now,
+    storageError,
+    dismissStorageError,
     previousDayLimit,
     periods,
     currentPeriod,

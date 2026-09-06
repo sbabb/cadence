@@ -1,12 +1,20 @@
 import assert from 'node:assert/strict'
-import { daysBetweenInclusive, addDays, todayStr, compareDateStr } from '../src/utils/dateUtils.js'
+import {
+  daysBetweenInclusive,
+  addDays,
+  todayStr,
+  compareDateStr,
+  formatShortDate
+} from '../src/utils/dateUtils.js'
 import {
   reconcilePeriod,
   buildPeriodSchedule,
   summarizePeriod,
   rangesOverlap,
   findOverlappingPeriod,
-  projectNextDayLimit
+  projectNextDayLimit,
+  dailyLimitFor,
+  entriesOutsideRange
 } from '../src/utils/budgetEngine.js'
 import {
   nextPaydayAfter,
@@ -701,6 +709,153 @@ scenario('overspending today visibly shrinks tomorrow (the number the dial surfa
   const tomorrow = projectNextDayLimit(r.todayInfo.remainingAfter, 10, 1)
   assert.equal(r.todayInfo.remainingAfter, 65)
   assert.equal(tomorrow, 8) // ceil(65/9) = 7.2 -> 8; the user sees the cost immediately
+})
+
+// ---------------------------------------------------------------------------
+// Round 15: the edge cases. Every one of these is a real situation that
+// produced a wrong answer or a silent one before it was written down here.
+// ---------------------------------------------------------------------------
+
+scenario('a limit can never be negative - it floors at zero', () => {
+  // Overspend hard enough and remaining goes below zero, so the division does
+  // too. "-$38" is not a limit; the most you may spend is never less than
+  // nothing. The size of the hole survives in `remainingBefore`.
+  assert.equal(dailyLimitFor(-500, 9), 0)
+  assert.equal(dailyLimitFor(0, 9), 0)
+  assert.equal(dailyLimitFor(90, 9), 10)
+  assert.equal(projectNextDayLimit(-500, 14, 5), 0)
+})
+
+scenario('blowing the whole budget on day one leaves a zero limit, not a negative one', () => {
+  const period = {
+    startDate: '2026-09-01',
+    endDate: '2026-09-14',
+    initialAmount: 400,
+    entries: [{ date: '2026-09-01', amount: 900 }]
+  }
+  const r = reconcilePeriod(period, '2026-09-06')
+  assert.equal(r.todayInfo.dailyLimit, 0)
+  // The debt is still stated, just not as a "limit".
+  assert.equal(r.todayInfo.remainingBefore, -500)
+  // And every remaining day inherits the floored figure rather than -$38.
+  const schedule = buildPeriodSchedule(period, '2026-09-06', r)
+  assert.ok(schedule.every((row) => row.dailyLimit === null || row.dailyLimit >= 0))
+})
+
+scenario('a period spanning a daylight-saving change still counts whole days', () => {
+  // US DST ends 2026-11-01, so this range contains a 25-hour day. Date maths
+  // that drifted by an hour would report 15 days, and every daily limit in
+  // November would be wrong by a fifteenth.
+  assert.equal(daysBetweenInclusive('2026-10-25', '2026-11-07'), 14)
+  assert.equal(addDays('2026-10-31', 2), '2026-11-02')
+  const period = {
+    startDate: '2026-10-25',
+    endDate: '2026-11-07',
+    initialAmount: 420,
+    entries: []
+  }
+  const r = reconcilePeriod(period, '2026-11-02')
+  assert.equal(r.totalDays, 14)
+  assert.equal(r.todayInfo.dailyLimit, 30)
+})
+
+scenario('the spring-forward direction is safe too', () => {
+  // US DST begins 2027-03-14 - a 23-hour day, the direction that most often
+  // makes naive date maths lose a day entirely.
+  assert.equal(daysBetweenInclusive('2027-03-08', '2027-03-21'), 14)
+  assert.equal(addDays('2027-03-13', 1), '2027-03-14')
+  assert.equal(addDays('2027-03-14', 1), '2027-03-15')
+})
+
+scenario('travelling backwards across a date line does not corrupt the period', () => {
+  // Fly east to west and the device clock can hand back YESTERDAY. An entry
+  // already logged is then dated in the future relative to "today". It must be
+  // ignored for the running total rather than counted or double-counted.
+  const period = {
+    startDate: '2026-09-01',
+    endDate: '2026-09-14',
+    initialAmount: 280, // $20/day flat
+    entries: [
+      { date: '2026-09-01', amount: 20 },
+      { date: '2026-09-02', amount: 20 },
+      { date: '2026-09-03', amount: 50 } // "tomorrow" after the clock moves back
+    ]
+  }
+  const r = reconcilePeriod(period, '2026-09-02')
+  // Only Sep 1 is strictly before today, so only it is finalized.
+  assert.equal(r.entries.length, 2) // Sep 1, plus today's own logged entry
+  assert.ok(r.entries.every((e) => compareDateStr(e.date, '2026-09-02') <= 0))
+  // The future entry is untouched and uncounted - not deleted, not applied.
+  assert.equal(r.todayInfo.remainingAfter, 240)
+})
+
+scenario('a future-dated entry reappears correctly once that day arrives', () => {
+  const period = {
+    startDate: '2026-09-01',
+    endDate: '2026-09-14',
+    initialAmount: 280,
+    entries: [
+      { date: '2026-09-01', amount: 20 },
+      { date: '2026-09-02', amount: 20 },
+      { date: '2026-09-03', amount: 50 }
+    ]
+  }
+  const r = reconcilePeriod(period, '2026-09-03')
+  assert.equal(r.todayInfo.logged, true)
+  assert.equal(r.todayInfo.amount, 50)
+  assert.equal(r.todayInfo.remainingAfter, 190) // 280 - 20 - 20 - 50
+})
+
+scenario('entriesOutsideRange finds exactly the days an edit would hide', () => {
+  const period = {
+    startDate: '2026-09-01',
+    endDate: '2026-09-14',
+    entries: [
+      { date: '2026-09-02', amount: 10 },
+      { date: '2026-09-09', amount: 10 },
+      { date: '2026-09-12', amount: 10 }
+    ]
+  }
+  assert.deepEqual(entriesOutsideRange(period, '2026-09-01', '2026-09-14'), [])
+  assert.deepEqual(entriesOutsideRange(period, '2026-09-01', '2026-09-10'), ['2026-09-12'])
+  assert.deepEqual(entriesOutsideRange(period, '2026-09-01', '2026-09-05'), ['2026-09-09', '2026-09-12'])
+})
+
+scenario('hidden days are hidden, not destroyed - widening the range restores them', () => {
+  const entries = [
+    { date: '2026-09-02', amount: 10 },
+    { date: '2026-09-12', amount: 40 }
+  ]
+  const shrunk = { startDate: '2026-09-01', endDate: '2026-09-10', initialAmount: 200, entries }
+  const widened = { startDate: '2026-09-01', endDate: '2026-09-14', initialAmount: 200, entries }
+  assert.equal(reconcilePeriod(shrunk, '2026-09-20').finalRemaining, 190)
+  assert.equal(reconcilePeriod(widened, '2026-09-20').finalRemaining, 150)
+})
+
+scenario('a period nobody ever opened reports nothing tracked, not zero spent', () => {
+  const period = { startDate: '2026-07-01', endDate: '2026-07-14', initialAmount: 400, entries: [] }
+  const summary = summarizePeriod(period, reconcilePeriod(period, '2026-07-20'))
+  assert.equal(summary.daysTracked, 0)
+  // totalSpent is 0 arithmetically, but daysTracked is what the UI must branch
+  // on - the difference between "spent nothing" and "we do not know".
+  assert.equal(summary.totalSpent, 0)
+  assert.equal(summary.remaining, 400)
+})
+
+scenario('a one-day period is valid and does not divide by zero', () => {
+  const period = { startDate: '2026-09-06', endDate: '2026-09-06', initialAmount: 60, entries: [] }
+  const r = reconcilePeriod(period, '2026-09-06')
+  assert.equal(r.totalDays, 1)
+  assert.equal(r.todayInfo.dailyLimit, 60)
+  assert.equal(r.todayInfo.baselineDailyLimit, 60)
+})
+
+scenario('short dates carry a year only when they leave the reference year', () => {
+  // Without this, a chart crossing New Year renders two periods twelve months
+  // apart as the same label.
+  assert.equal(formatShortDate('2026-01-05', 2026), '1/5')
+  assert.equal(formatShortDate('2025-01-05', 2026), '1/5/25')
+  assert.equal(formatShortDate('2027-12-31', 2026), '12/31/27')
 })
 
 console.log('\nAll engine verification scenarios completed.')

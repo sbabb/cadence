@@ -39,7 +39,11 @@ export default function PeriodSummary({ period, reconciled, onContinue, devForce
       <div className="summary-stat-list">
         <div className="summary-stat-row">
           <span className="summary-stat-label">TOTAL SPENT</span>
-          <span className="summary-stat-value">{formatMoney(totalSpent)}</span>
+          {/* A period nobody logged did not have $0 spent - it has no figure
+              at all. Printing $0 under a headline that says NO DAYS TRACKED
+              contradicts it, and fabricating a zero is the one thing this
+              app has never done anywhere else. */}
+          <span className="summary-stat-value">{daysTracked === 0 ? '—' : formatMoney(totalSpent)}</span>
         </div>
         <div className="summary-stat-row">
           <span className="summary-stat-label">TOTAL BUDGET</span>

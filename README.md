@@ -50,7 +50,8 @@ through, never generated in advance.
   but only when the figure genuinely falls.
 - **Five themes**, switchable in Settings and applied instantly.
 - **Period history** you swipe back through, an end-of-period summary that
-  states the facts without moralising, and a trends chart across every period.
+  states the facts without moralising, and a trends chart across every period —
+  tap any bar to jump straight to that period.
 
 ## Running it
 
@@ -68,7 +69,7 @@ npm run preview    # serve the build
 npm run verify     # both suites below, no dependencies, plain node
 ```
 
-- `scripts/verify-engine.mjs` — 55 scenarios over the algorithm above.
+- `scripts/verify-engine.mjs` — 66 scenarios over the algorithm above.
 - `scripts/verify-themes.mjs` — contrast and colour-ramp checks for every
   theme. See *Themes* below for why this one isn't optional.
 
@@ -114,6 +115,31 @@ deepens from, that light themes invert elevation correctly, and that no point
 along a theme's actual 0–200% colour ramp dips below 3:1 or desaturates toward
 grey. Four of the five palettes needed adjusting to pass.
 
+## Edge cases worth knowing about
+
+The awkward cases are handled deliberately rather than left to chance, and each
+one has a scenario in the engine suite:
+
+- **A limit never goes negative.** Overspend hard enough and the arithmetic
+  wants to hand back `-$38`; the most you may spend is never less than nothing,
+  so it floors at `$0` and the debt is reported by REMAINING instead. Left
+  unclamped it also drove the colour ramp to a fraction of zero, which painted
+  a *green* figure above the words "over today".
+- **Storage failures are visible.** There is no backend, so `localStorage` is
+  not a cache — it is the only copy. A refused write and an unreadable blob
+  each raise a banner, rather than a console message no phone user will see.
+  Corrupted data is never quietly presented as a fresh install.
+- **Edits that would hide days ask first.** Shrinking a period past logged
+  entries doesn't delete them — they return if the range is widened — but they
+  vanish from every screen, so it confirms first.
+- **Dates are UTC-noon anchored**, which is what keeps a period spanning a
+  daylight-saving change at fourteen days, and what stops a timezone change
+  mid-period from double-counting or dropping an entry.
+- **The spend sheet outranks the end-of-period flow.** A period ending at
+  midnight used to unmount the sheet mid-entry; now the summary waits.
+- **Untracked gaps stay visible.** Periods only exist for time actually lived
+  through, so Trends marks the space between them rather than closing it up.
+
 ## Structure
 
 ```
@@ -134,7 +160,7 @@ src/
     useKeyboardInset.js  visualViewport fallback for the on-screen keyboard
   components/          screens and widgets
 scripts/
-  verify-engine.mjs    55 scenarios, run with plain node
+  verify-engine.mjs    66 scenarios, run with plain node
   verify-themes.mjs    162 colour checks, likewise
 ```
 
@@ -145,9 +171,11 @@ limit for free. There is no incremental cache to get out of step.
 ## Stack
 
 React 18 with plain function components and hooks — no state library. Vite 7.
-JetBrains Mono, self-hosted rather than pulled from a CDN so the app looks right
-offline. `localStorage` only (key `budgetHabitTracker.v1`); nothing leaves the
-browser and there is no backend.
+JetBrains Mono (SIL Open Font License 1.1, free for commercial use), self-hosted
+rather than pulled from a CDN so the app looks right offline. `localStorage`
+only (key `budgetHabitTracker.v1`); nothing leaves the browser and there is no
+backend. A service worker caches the build so it runs with no network, and a web
+manifest plus icons make it installable to a home screen over HTTPS.
 
 ## Note
 

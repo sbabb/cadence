@@ -96,13 +96,28 @@ export default function PeriodPager({
           >
             ‹
           </button>
-          {/* Deliberately terse. "PERIOD 1 OF 1" is wider than the row can
-              spare once TRENDS and SETTINGS are touch-sized, and letting it
-              ellipsis away to "PERIOD 1 ..." was worse than shortening it
-              honestly. Flanked by arrows, "1 / 1" is unambiguous. */}
-          <span className="pager-indicator">
-            {viewIndex + 1} / {periods.length}
-          </span>
+          {/* "3 / 13" says where you are in an array, which is not a thing
+              anyone wants to know. Where you are in TIME is, and it fits in
+              the same space: CURRENT, or how many periods back you have gone.
+              Tapping it returns - the trip back from the oldest period used
+              to be twelve swipes.
+
+              Still deliberately terse: the row has to hold two touch-sized
+              buttons beside it without wrapping, which "PERIOD 1 OF 1" did
+              not, and the exact dates are already spelled out directly
+              underneath. */}
+          {isActivePeriod ? (
+            <span className="pager-indicator">CURRENT</span>
+          ) : (
+            <button
+              type="button"
+              className="pager-indicator pager-indicator-button"
+              onClick={() => onViewIndexChange(activeIndex)}
+              aria-label="Back to the current period"
+            >
+              {activeIndex - viewIndex} BACK
+            </button>
+          )}
           <button
             type="button"
             className="pager-arrow"

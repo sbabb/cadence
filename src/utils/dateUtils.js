@@ -89,7 +89,15 @@ export function formatTimeRemaining(now = new Date()) {
 // Very compact numeric form, e.g. "8/16" - used where space is tight, such
 // as a Trends chart bar's date-range label (two of these stacked, one for
 // the period's start and one for its end).
-export function formatShortDate(dateStr) {
-  const [, m, d] = dateStr.split('-').map(Number)
-  return `${m}/${d}`
+//
+// The year is appended only when the date is NOT in the given reference year.
+// Six months of biweekly periods is thirteen columns, and once a chart crosses
+// New Year two periods twelve months apart both render as "1/5" - which makes
+// the history quietly wrong rather than merely cramped. Passing the year in
+// (rather than reading the clock here) keeps the function pure.
+export function formatShortDate(dateStr, referenceYear) {
+  const [y, m, d] = dateStr.split('-').map(Number)
+  const short = `${m}/${d}`
+  if (referenceYear === undefined || y === referenceYear) return short
+  return `${short}/${String(y).slice(2)}`
 }

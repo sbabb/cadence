@@ -60,6 +60,18 @@ export function findOverlappingPeriod(periods, startDate, endDate, excludePeriod
   return null
 }
 
+// Which of a period's logged days would fall outside a proposed new date
+// range. Shrinking the end date does not delete anything - the entries stay in
+// storage and come back if the range is widened again - but they vanish from
+// every screen in the meantime, and an edit that silently removes days you
+// logged is exactly the kind of thing an app should ask about first.
+export function entriesOutsideRange(period, startDate, endDate) {
+  return (period.entries || [])
+    .filter((e) => compareDateStr(e.date, startDate) < 0 || compareDateStr(e.date, endDate) > 0)
+    .map((e) => e.date)
+    .sort(compareDateStr)
+}
+
 // What the daily limit becomes on the NEXT tracked day, given where the budget
 // and the logged-day count stand right now. Same formula the engine uses
 // everywhere else - stated separately here because the dashboard needs to show
@@ -67,7 +79,23 @@ export function findOverlappingPeriod(periods, startDate, endDate, excludePeriod
 // happens, rather than leaving the user to discover it tomorrow.
 export function projectNextDayLimit(remaining, totalDays, loggedDays) {
   const divisor = Math.max(1, totalDays - loggedDays)
-  return ceilDollars(remaining / divisor)
+  return dailyLimitFor(remaining, divisor)
+}
+
+// The daily limit, floored at zero.
+//
+// The division can go negative - overspend hard enough and there is less than
+// nothing left to spread over the days that remain. The arithmetic is right,
+// but "-$38" is not a limit: a limit is the most you may spend, and the most
+// you may spend is never less than nothing. Left unclamped it also propagated
+// into the display as a negative figure in the LIMIT column of every remaining
+// day, and drove the spend bar's colour ramp to a fraction of zero - which
+// rendered a green figure directly above the words "over today".
+//
+// The depth of the hole is not lost by clamping: it lives in `remainingBefore`
+// / `finalRemaining`, which is what the REMAINING box has always shown.
+export function dailyLimitFor(budget, daysRemaining) {
+  return Math.max(0, ceilDollars(budget / daysRemaining))
 }
 
 // Walks a period's EXPLICITLY LOGGED entries (and only those - unlogged
@@ -122,7 +150,7 @@ export function reconcilePeriod(period, todayStr) {
     if (compareDateStr(entry.date, todayStr) >= 0) break // today/future handled below
 
     const daysRemaining = Math.max(1, totalDays - loggedDaysSoFar)
-    const dailyLimit = ceilDollars(runningBudget / daysRemaining)
+    const dailyLimit = dailyLimitFor(runningBudget, daysRemaining)
     const remainingAfter = runningBudget - entry.amount
     finalizedEntries.push({ date: entry.date, amount: entry.amount, dailyLimit, remainingAfter })
     runningBudget = remainingAfter
@@ -132,7 +160,7 @@ export function reconcilePeriod(period, todayStr) {
   let todayInfo = null
   if (!periodEnded) {
     const daysRemaining = Math.max(1, totalDays - loggedDaysSoFar)
-    const dailyLimit = ceilDollars(runningBudget / daysRemaining)
+    const dailyLimit = dailyLimitFor(runningBudget, daysRemaining)
     const todayEntry = sortedEntries.find((e) => e.date === todayStr)
 
     if (todayEntry) {

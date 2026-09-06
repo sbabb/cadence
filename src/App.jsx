@@ -12,6 +12,7 @@ import PeriodSummary from './components/PeriodSummary'
 import LapsedNotice from './components/LapsedNotice'
 import Trends from './components/Trends'
 import Settings from './components/Settings'
+import StorageWarning from './components/StorageWarning'
 
 // A gap of this many days or more between a period ending and the user
 // next opening the app gets the extra "welcome back" acknowledgment
@@ -25,6 +26,8 @@ export default function App() {
   const {
     today,
     now,
+    storageError,
+    dismissStorageError,
     previousDayLimit,
     periods,
     currentPeriod,
@@ -173,15 +176,24 @@ export default function App() {
   const editingRow = editingDate ? schedule.find((row) => row.date === editingDate) : null
   const editingCurrentTotal = editingRow && editingRow.logged ? editingRow.amount : 0
 
+  // The spend sheet outranks the end-of-period sequence.
+  //
+  // A period ends at midnight, and the 30-second tick notices within half a
+  // minute. If that lands while the sheet is open, the summary screen replaces
+  // the pager, the sheet unmounts with it, and whatever was half-typed is
+  // gone. Nothing is lost by waiting: `endFlowStep` is already set and the
+  // summary appears the moment the sheet closes.
+  const sheetOpen = Boolean(editingDate)
+
   let screen
   if (needsOnboarding) {
     screen = <Onboarding today={today} onComplete={startFirstPeriod} />
-  } else if (endFlowStep === 'summary') {
+  } else if (endFlowStep === 'summary' && !sheetOpen) {
     screen = <PeriodSummary period={currentPeriod} reconciled={reconciled} onContinue={handleSummaryContinue} />
-  } else if (endFlowStep === 'lapsed') {
+  } else if (endFlowStep === 'lapsed' && !sheetOpen) {
     const gapDays = daysBetweenInclusive(currentPeriod.endDate, today) - 1
     screen = <LapsedNotice gapDays={gapDays} onContinue={() => setEndFlowStep('setup')} />
-  } else if (endFlowStep === 'setup') {
+  } else if (endFlowStep === 'setup' && !sheetOpen) {
     screen = (
       <PeriodSetup
         isNewPeriod
@@ -202,7 +214,17 @@ export default function App() {
       />
     )
   } else if (showTrends) {
-    screen = <Trends periods={periods} today={today} onBack={() => setShowTrends(false)} />
+    screen = (
+      <Trends
+        periods={periods}
+        today={today}
+        onJumpToPeriod={(idx) => {
+          setViewIndex(idx)
+          setShowTrends(false)
+        }}
+        onBack={() => setShowTrends(false)}
+      />
+    )
   } else if (showSettings) {
     screen = (
       <Settings
@@ -218,8 +240,7 @@ export default function App() {
     )
   } else {
     screen = (
-      <>
-        <PeriodPager
+      <PeriodPager
           periods={periods}
           today={today}
           viewIndex={viewIndex}
@@ -237,8 +258,19 @@ export default function App() {
           onResetAll={resetAllData}
           onClearTodayLog={clearTodayLog}
           onTriggerSummary={() => setDevForceSummary(true)}
-        />
-        {editingDate && (
+      />
+    )
+  }
+
+  return (
+    <ThemeColorsContext.Provider value={rampColors}>
+      <div className="app-shell">
+        <button type="button" className="ascii-header" onClick={goHome} aria-label="Cadence — back to today">
+          {'>'} CADENCE
+        </button>
+        {storageError && <StorageWarning kind={storageError} onDismiss={dismissStorageError} />}
+        {screen}
+        {sheetOpen && (
           <LogSpend
             currentTotal={editingCurrentTotal}
             alreadyLogged={Boolean(editingRow && editingRow.logged)}
@@ -249,17 +281,6 @@ export default function App() {
             onCancel={() => setEditingDate(null)}
           />
         )}
-      </>
-    )
-  }
-
-  return (
-    <ThemeColorsContext.Provider value={rampColors}>
-      <div className="app-shell">
-        <button type="button" className="ascii-header" onClick={goHome} aria-label="Cadence — back to today">
-          {'>'} CADENCE
-        </button>
-        {screen}
       </div>
     </ThemeColorsContext.Provider>
   )
