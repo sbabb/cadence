@@ -67,18 +67,28 @@ npm run dev
 Then open http://localhost:3000. To test on a phone, use the `Network:` URL it
 prints — the dev server is exposed to the local network.
 
+`./start-cadence.sh` (or `start-cadence.cmd` on Windows) does both steps and
+opens a browser. See `HOW-TO-RUN.md` for the longer version, including getting
+a phone on the LAN address past the firewall.
+
 ```bash
 npm run build      # production build
 npm run preview    # serve the build
-npm run verify     # both suites below, no dependencies, plain node
+npm run verify     # all four suites below, no dependencies, plain node
 ```
 
-- `scripts/verify-engine.mjs` — 66 scenarios over the algorithm above.
+- `scripts/verify-engine.mjs` — 69 scenarios over the algorithm above.
 - `scripts/verify-themes.mjs` — contrast and colour-ramp checks for every
   theme. See *Themes* below for why this one isn't optional.
 - `scripts/verify-backup.mjs` — 27 checks on the backup format, most of them
   about what it must *refuse*. Importing replaces everything, so a malformed
   file being accepted is the one bug here that destroys data silently.
+- `scripts/verify-sw.mjs` — 14 checks on the service worker, which decides
+  whether the app opens at all. It loads `public/sw.js` into a stubbed worker
+  environment and drives real requests through it: offline, stalled, slow, and
+  answered with a deploy-window error page. None of those reproduce on a fast
+  desk connection, which is the whole reason they are asserted rather than
+  tried.
 
 ## Installing it on a phone
 
@@ -171,6 +181,14 @@ one has a scenario in the engine suite:
   mid-period from double-counting or dropping an entry.
 - **The spend sheet outranks the end-of-period flow.** A period ending at
   midnight used to unmount the sheet mid-entry; now the summary waits.
+- **Abandoning ends a period today, so the next one starts tomorrow.** Today
+  still belongs to the period being closed — a replacement starting today would
+  overlap it, and one starting tomorrow has no row for today to show. So
+  abandoning shows the summary and returns to the dashboard for its last day,
+  and the ordinary end-of-period flow offers the next period the next morning.
+- **A one-day period is valid.** The catch-up remainder after an abandon can
+  genuinely be a single day; the engine divides by it without complaint, and
+  the setup form no longer insists the end date be strictly later.
 - **Untracked gaps stay visible.** Periods only exist for time actually lived
   through, so Trends marks the space between them rather than closing it up.
 
@@ -198,9 +216,10 @@ src/
     useKeyboardInset.js  visualViewport fallback for the on-screen keyboard
   components/          screens and widgets
 scripts/
-  verify-engine.mjs    66 scenarios, run with plain node
+  verify-engine.mjs    69 scenarios, run with plain node
   verify-themes.mjs    162 colour checks, likewise
   verify-backup.mjs    27 backup-format checks, mostly rejections
+  verify-sw.mjs        14 checks on offline, stalled and mid-deploy launches
 ```
 
 Everything is a pure recompute: the engine derives the whole period from its
