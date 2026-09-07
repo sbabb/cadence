@@ -325,8 +325,9 @@ export default function Settings({
       <section className="settings-section">
         <h2 className="settings-section-title">ABANDON CURRENT PERIOD</h2>
         <p className="settings-section-hint">
-          Ends the current period today instead of on its scheduled end date, then walks through the usual period
-          summary before setting up the next one.
+          Ends the current period today instead of on its scheduled end date and shows you its summary. Today
+          still belongs to the period you are closing, so the next one begins tomorrow - Cadence will offer it
+          then, the same way it would after any period ends.
         </p>
         <button type="button" className="abandon-period-button" onClick={() => setAbandonConfirmOpen(true)}>
           ABANDON CURRENT PERIOD
@@ -379,7 +380,7 @@ export default function Settings({
 
       {abandonConfirmOpen && (
         <ConfirmDialog
-          message="Abandon the current period? It will end today, and you'll see its summary before setting up the next one."
+          message="Abandon the current period? It will end today and you'll see its summary. Today still counts toward it, so your next period starts tomorrow."
           confirmLabel="ABANDON PERIOD"
           cancelLabel="CANCEL"
           danger

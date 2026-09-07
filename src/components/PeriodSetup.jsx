@@ -71,8 +71,13 @@ export default function PeriodSetup({
       setError('Both a start date and an end date are required.')
       return
     }
-    if (compareDateStr(startDate, endDate) >= 0) {
-      setError('End date must be after start date.')
+    // A single-day period is legitimate, not a typo. The engine handles one
+    // day without dividing by zero, and the cadence derivation genuinely
+    // produces one: abandon a weekly period the day before payday and the
+    // catch-up remainder offered is exactly one day long. Insisting the end
+    // date be strictly LATER rejected dates the app had pre-filled itself.
+    if (compareDateStr(startDate, endDate) > 0) {
+      setError('End date cannot be before start date.')
       return
     }
     // A period must contain today. Scheduling one to begin later sounds

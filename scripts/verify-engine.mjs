@@ -615,6 +615,60 @@ scenario('abandoning a period early offers the remainder up to the next payday',
   assert.equal(rangesOverlap(abandoned.startDate, abandoned.endDate, next.startDate, next.endDate), false)
 })
 
+scenario('abandoning today never offers a period that overlaps the day just closed', () => {
+  // Abandon truncates the end date to TODAY, so today is still inside the
+  // period being closed. Anchoring the replacement to today produced a period
+  // starting on a day the old one still occupied - an overlap the duplicate
+  // check then rejected, which left the setup screen refusing dates it had
+  // pre-filled itself. The gap has to start the day AFTER the old period.
+  const abandonedToday = { startDate: '2026-09-01', endDate: '2026-09-06' }
+  const next = deriveNextPeriod(abandonedToday, 'biweekly', '2026-09-06')
+  assert.deepEqual(next, { startDate: '2026-09-07', endDate: '2026-09-14' })
+  assert.equal(
+    rangesOverlap(abandonedToday.startDate, abandonedToday.endDate, next.startDate, next.endDate),
+    false
+  )
+})
+
+scenario('abandoning ON the last day offers the next aligned period, not a backwards one', () => {
+  // Here the clamp closes the gap completely: the day after the old period IS
+  // the next payday. The aligned period is the answer; the gap branch would
+  // have returned a range ending the day before it starts.
+  const lastDay = { startDate: '2026-09-01', endDate: '2026-09-14' }
+  const next = deriveNextPeriod(lastDay, 'biweekly', '2026-09-14')
+  assert.deepEqual(next, { startDate: '2026-09-15', endDate: '2026-09-28' })
+  assert.equal(compareDateStr(next.startDate, next.endDate) < 0, true, 'a period must not end before it starts')
+  assert.equal(rangesOverlap(lastDay.startDate, lastDay.endDate, next.startDate, next.endDate), false)
+})
+
+scenario('no cadence ever offers a period overlapping the one it follows', () => {
+  // The property that matters, swept rather than spot-checked: whatever the
+  // cadence and whenever the user comes back - including the same day they
+  // abandoned - the offer never collides with the period just closed.
+  for (const cadence of ['weekly', 'biweekly', 'twice-monthly', 'monthly']) {
+    for (const endDate of ['2026-09-06', '2026-09-14', '2026-09-30']) {
+      const previous = { startDate: '2026-09-01', endDate }
+      for (const today of [endDate, addDays(endDate, 1), addDays(endDate, 9)]) {
+        const next = deriveNextPeriod(previous, cadence, today)
+        if (!next) continue
+        const where = `${cadence}, ended ${endDate}, opened ${today}`
+        assert.equal(
+          rangesOverlap(previous.startDate, previous.endDate, next.startDate, next.endDate),
+          false,
+          `${where}: overlaps the previous period`
+        )
+        assert.equal(compareDateStr(next.startDate, next.endDate) <= 0, true, `${where}: ends before it starts`)
+        // Once the old period is genuinely over, the offer must contain today -
+        // that is what the dashboard needs to have a row and a limit to show.
+        if (compareDateStr(today, previous.endDate) > 0) {
+          assert.equal(compareDateStr(next.startDate, today) <= 0, true, `${where}: starts after today`)
+          assert.equal(compareDateStr(today, next.endDate) <= 0, true, `${where}: ends before today`)
+        }
+      }
+    }
+  }
+})
+
 scenario('derived periods always contain today, which is what keeps future-dated periods impossible', () => {
   for (const cadence of ['weekly', 'biweekly', 'twice-monthly', 'monthly']) {
     for (const today of ['2026-08-31', '2026-09-15', '2027-01-01']) {

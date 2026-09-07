@@ -85,8 +85,9 @@ export default function Onboarding({ today, onComplete }) {
         setError('An end date is required.')
         return
       }
-      if (compareDateStr(lastPaid, manualEnd) >= 0) {
-        setError('End date must be after start date.')
+      // One day is a valid period - see the note in PeriodSetup.jsx.
+      if (compareDateStr(lastPaid, manualEnd) > 0) {
+        setError('End date cannot be before start date.')
         return
       }
       if (compareDateStr(manualEnd, today) < 0) {

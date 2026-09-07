@@ -3,7 +3,7 @@ import useBudgetData from './hooks/useBudgetData'
 import usePersistentStorage from './hooks/usePersistentStorage.js'
 import { ThemeColorsContext } from './hooks/useThemeColors.js'
 import { applyTheme, getTheme, rampColorsFor } from './utils/themes.js'
-import { formatDisplayDateWithDay, daysBetweenInclusive } from './utils/dateUtils.js'
+import { formatDisplayDateWithDay, daysBetweenInclusive, compareDateStr } from './utils/dateUtils.js'
 import { deriveNextPeriod } from './utils/cadence.js'
 import Onboarding from './components/Onboarding'
 import PeriodSetup from './components/PeriodSetup'
@@ -147,7 +147,21 @@ export default function App() {
     setHomeNonce((n) => n + 1)
   }
 
+  // The summary's CONTINUE normally leads to setting up the period that
+  // follows. There is one case where it must not: the summary is also reached
+  // from Settings -> Abandon Current Period, which ends the period TODAY
+  // rather than in the past, so today is still inside the period just closed.
+  // Nothing can be set up from there - a period starting today would overlap
+  // the one being closed, and one starting tomorrow has not begun, so the
+  // dashboard would have no row for today and no limit to show. Going back to
+  // the dashboard is the honest answer: the abandoned period runs out its last
+  // day, and tomorrow the ordinary end-of-period flow offers the next one
+  // exactly as it would have anyway.
   const handleSummaryContinue = () => {
+    if (currentPeriod && compareDateStr(currentPeriod.endDate, today) >= 0) {
+      setEndFlowStep(null)
+      return
+    }
     const gapDays = currentPeriod ? daysBetweenInclusive(currentPeriod.endDate, today) - 1 : 0
     setEndFlowStep(gapDays >= LAPSED_THRESHOLD_DAYS ? 'lapsed' : 'setup')
   }

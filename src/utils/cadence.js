@@ -119,13 +119,26 @@ export function derivePeriodContaining(lastPaydayStr, cadence, todayStr) {
 // its stored end date no longer lines up with the pay cycle, so the naively
 // derived period would overlap it and be rejected by the duplicate check.
 //
-// If ending early left a gap - today sits after the abandoned period but
-// before the next payday - there is no aligned period containing today, and
-// inventing one that hasn't started would be wrong. Instead we offer the
-// remainder: today through to the day before the next payday. That is exactly
-// what the calendar actually looks like from where the user is standing.
+// If ending early left a gap - the previous period is over but the next payday
+// hasn't arrived - there is no aligned period containing today, and inventing
+// one that hasn't started would be wrong. Instead we offer the remainder: the
+// day after the old period through to the day before the next payday. That is
+// exactly what the calendar looks like from where the user is standing.
+//
+// The gap always starts the day AFTER the previous period ends, never simply
+// on `todayStr`. Those are the same date in the ordinary case - you come back
+// the next morning - but they diverge the moment a period is abandoned, which
+// truncates its end date to TODAY. Anchoring the gap to today there returned a
+// period starting on a day the old one still occupies: an overlap this
+// function exists to prevent, which the duplicate check then rejected, leaving
+// the setup screen refusing dates it had pre-filled itself. Where the clamp
+// closes the gap entirely, the aligned period below is the right answer and
+// gets returned instead of a backwards one-day range.
 export function deriveNextPeriod(previousPeriod, cadence, todayStr) {
   if (!previousPeriod || !todayStr || cadence === 'manual') return null
+
+  // The earliest a new period may begin without overlapping the old one.
+  const earliestStart = addDays(previousPeriod.endDate, 1)
 
   let payday = previousPeriod.startDate
   for (let i = 0; i < 600; i += 1) {
@@ -133,10 +146,11 @@ export function deriveNextPeriod(previousPeriod, cadence, todayStr) {
     if (!period) return null
 
     if (compareDateStr(period.startDate, previousPeriod.endDate) > 0) {
-      if (compareDateStr(todayStr, period.startDate) < 0) {
-        return { startDate: todayStr, endDate: addDays(period.startDate, -1) }
+      const from = compareDateStr(todayStr, earliestStart) < 0 ? earliestStart : todayStr
+      if (compareDateStr(from, period.startDate) < 0) {
+        return { startDate: from, endDate: addDays(period.startDate, -1) }
       }
-      if (compareDateStr(todayStr, period.endDate) <= 0) return period
+      if (compareDateStr(from, period.endDate) <= 0) return period
     }
 
     payday = nextPaydayAfter(payday, cadence)

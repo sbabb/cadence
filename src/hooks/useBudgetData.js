@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { todayStr, compareDateStr, addDays } from '../utils/dateUtils.js'
 import { DEFAULT_THEME } from '../utils/themes.js'
 import {
@@ -80,10 +80,31 @@ export default function useBudgetData() {
   // display and costs nothing.
   const [now, setNow] = useState(() => new Date())
 
-  // Persist to localStorage any time the data changes. A failed write is
-  // surfaced rather than logged; a later successful one clears the warning,
+  // What is already known to be in storage. Starts as whatever was loaded,
+  // which is the whole point - see the effect below.
+  const lastPersisted = useRef(initial.data)
+
+  // Persist to localStorage any time the data actually CHANGES. A failed write
+  // is surfaced rather than logged; a later successful one clears the warning,
   // since whatever was wrong has evidently passed.
+  //
+  // The identity check is what stops this firing on mount, and that is a data
+  // question rather than a performance one. When loadData() cannot parse what
+  // it found, it hands back an empty state and flags `unreadable` - and an
+  // unconditional write here then put that empty state straight over the
+  // unreadable blob, before the user had even seen the warning about it. The
+  // banner told them the old data might still be there and to check before
+  // logging anything; by the time they read it, this effect had already
+  // overwritten the only copy. Nothing is written now until something the user
+  // did changes it, so a corrupted blob survives long enough to be rescued.
+  //
+  // Comparing by reference rather than with a "first run" flag is deliberate:
+  // every state update here builds a new object, so identity is an exact test
+  // for "nothing has changed", and it stays correct under StrictMode's
+  // double-invoked effects, which a one-shot flag does not.
   useEffect(() => {
+    if (data === lastPersisted.current) return
+    lastPersisted.current = data
     const ok = persistData(data)
     setStorageError((prev) => (ok ? (prev === 'write' ? null : prev) : 'write'))
   }, [data])
@@ -256,8 +277,9 @@ export default function useBudgetData() {
       if (periods.length === 0) return 'No active period to edit.'
       const period = periods[periods.length - 1]
 
-      if (compareDateStr(period.startDate, endDate) >= 0) {
-        return 'End date must be after start date.'
+      // One day is a valid period - see the note in PeriodSetup.jsx.
+      if (compareDateStr(period.startDate, endDate) > 0) {
+        return 'End date cannot be before start date.'
       }
       if (findOverlappingPeriod(periods, period.startDate, endDate, period.id)) {
         return 'A period already exists for these dates.'
