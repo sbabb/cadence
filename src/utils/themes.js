@@ -1,4 +1,4 @@
-// The five palettes, and the machinery that swaps between them.
+// The four palettes, and the machinery that swaps between them.
 //
 // The stylesheet already had one rule that made this cheap: no component picks
 // its own hex, everything reads a custom property off :root. So a theme is
@@ -10,10 +10,22 @@
 // the over-budget track tint and the modal scrims. They had to move, because
 // a wine-dark track and a near-black scrim are both wrong on a light theme.
 //
-// The palettes are the published ones - Tokyo Night, Gruvbox, Catppuccin,
-// Nord - rather than hand-mixed variants, because these are IDE themes people
-// already know by sight, and the whole point is that picking "Gruvbox" gives
-// you the Gruvbox you were expecting.
+// Four palettes, ordered darkest to lightest - which is the order they appear
+// in the picker, and is asserted by scripts/verify-themes.mjs so it cannot
+// drift as palettes come and go.
+//
+// Three are the published ones - Tokyo Night, Nord, Catppuccin Latte - rather
+// than hand-mixed variants, because these are IDE themes people already know
+// by sight, and the whole point is that picking "Nord" gives you the Nord you
+// were expecting. Slate is the exception and is ours: there is no canonical
+// neutral grey to borrow, and the gap it fills is a light theme with no hue in
+// it at all.
+//
+// Gruvbox Dark and Catppuccin Mocha were removed. Nothing has to migrate for
+// that: getTheme() falls back to the default for an id it does not recognise,
+// and parseBackup() does the same for a theme name inside an imported file, so
+// a user or a backup still naming one of them lands on Tokyo Night rather than
+// on an error.
 //
 // Three structural rules every theme has to keep, or the UI stops making
 // sense:
@@ -82,62 +94,6 @@ export const THEMES = [
     }
   },
   {
-    id: 'gruvbox-dark',
-    label: 'GRUVBOX DARK',
-    detail: 'Warm retro. Paper and ink.',
-    mode: 'dark',
-    tokens: {
-      bg: '#1d2021',
-      bgPanel: '#282828',
-      bgElevated: '#32302f',
-      border: '#504945',
-      borderBright: '#665c54',
-      text: '#ebdbb2',
-      textMid: '#bdae93',
-      textDim: '#928374',
-      green: '#b8bb26',
-      amber: '#fabd2f',
-      red: '#fb4934',
-      redDeep: '#d73128',
-      teal: '#8ec07c',
-      blue: '#83a598',
-      cyan: '#8ec07c',
-      purple: '#d3869b',
-      orange: '#fe8019',
-      trackOver: '#3c2828',
-      scrim: 'rgba(12, 13, 13, 0.82)',
-      scrimStrong: 'rgba(12, 13, 13, 0.90)'
-    }
-  },
-  {
-    id: 'catppuccin-mocha',
-    label: 'CATPPUCCIN MOCHA',
-    detail: 'Soft pastels on near-black.',
-    mode: 'dark',
-    tokens: {
-      bg: '#181825',
-      bgPanel: '#1e1e2e',
-      bgElevated: '#313244',
-      border: '#45475a',
-      borderBright: '#585b70',
-      text: '#cdd6f4',
-      textMid: '#a6adc8',
-      textDim: '#7f849c',
-      green: '#a6e3a1',
-      amber: '#f9e2af',
-      red: '#f38ba8',
-      redDeep: '#d0526f',
-      teal: '#94e2d5',
-      blue: '#89b4fa',
-      cyan: '#89dceb',
-      purple: '#cba6f7',
-      orange: '#fab387',
-      trackOver: '#3a2434',
-      scrim: 'rgba(17, 17, 27, 0.82)',
-      scrimStrong: 'rgba(17, 17, 27, 0.90)'
-    }
-  },
-  {
     id: 'nord',
     label: 'NORD',
     detail: 'Cold, muted, low contrast.',
@@ -174,6 +130,58 @@ export const THEMES = [
       trackOver: '#42303a',
       scrim: 'rgba(24, 28, 36, 0.84)',
       scrimStrong: 'rgba(24, 28, 36, 0.91)'
+    }
+  },
+  {
+    id: 'slate',
+    label: 'SLATE',
+    detail: 'Neutral grey. Light without the tint.',
+    mode: 'light',
+    tokens: {
+      // A true neutral: every grey here has r == g == b, so the chrome carries
+      // no hue whatsoever and the only colour on screen is colour that means
+      // something. That is the whole idea of this palette, and it is why the
+      // accents below are muted rather than vivid - full-strength colour on a
+      // colourless ground reads as though it wandered in from another app.
+      //
+      // Light like Latte, but a clear step darker: #dcdcdc against Latte's
+      // #eff1f5 is 1.21:1, which is enough that the two never look like the
+      // same choice made twice in the picker.
+      bg: '#dcdcdc',
+      bgPanel: '#d0d0d0',
+      bgElevated: '#c2c2c2',
+      border: '#a4a4a4',
+      borderBright: '#888888',
+      text: '#1c1c1c',
+      textMid: '#454545',
+      textDim: '#585858',
+      // Chosen by search rather than by eye - see scripts/verify-themes.mjs
+      // for the rules they had to satisfy. A light ground is the hard case for
+      // this app: every status colour has to clear 3:1 on BOTH the page and a
+      // panel, which forces them dark, while green/amber/red still have to be
+      // told apart from each other once they are. All three clear the 3:1 bar
+      // with most of a stop to spare on the tighter of the two grounds, and
+      // sit close enough together that no one of them shouts over the rest.
+      green: '#20702c',
+      // Deliberately a touch lighter and more chromatic than the even-contrast
+      // set the search settled on. At equal contrast with green and red this
+      // colour lands on brown, and brown does not say "close to your limit" -
+      // amber has to look like amber or the middle of the ramp means nothing.
+      amber: '#8a6410',
+      red: '#b33344',
+      redDeep: '#8c172c',
+      teal: '#1e6464',
+      blue: '#175098',
+      cyan: '#1b5a75',
+      purple: '#6d3d8d',
+      orange: '#8e3518',
+      // The over-budget track: enough pink to read as wrong, pale enough that
+      // the deep red fill still stands off it.
+      trackOver: '#e3c4ca',
+      // Dark scrims on a light theme, same reasoning as Latte's - a pale wash
+      // over pale content leaves the dialog floating in fog.
+      scrim: 'rgba(28, 28, 28, 0.55)',
+      scrimStrong: 'rgba(28, 28, 28, 0.66)'
     }
   },
   {

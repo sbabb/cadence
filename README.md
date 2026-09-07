@@ -52,7 +52,8 @@ through, never generated in advance.
   back on another phone. There is no account and no server, so this is how a
   history survives a new device — offered in Settings and again at the end of
   each period, which is the natural moment to take a copy.
-- **Five themes**, switchable in Settings and applied instantly.
+- **Four themes**, ordered darkest to lightest, switchable in Settings and
+  applied instantly.
 - **Period history** you swipe back through, an end-of-period summary that
   states the facts without moralising, and a trends chart across every period —
   tap any bar to jump straight to that period.
@@ -78,8 +79,8 @@ npm run verify     # all four suites below, no dependencies, plain node
 ```
 
 - `scripts/verify-engine.mjs` — 69 scenarios over the algorithm above.
-- `scripts/verify-themes.mjs` — contrast and colour-ramp checks for every
-  theme. See *Themes* below for why this one isn't optional.
+- `scripts/verify-themes.mjs` — 132 contrast, colour-ramp and running-order
+  checks for every theme. See *Themes* below for why this one isn't optional.
 - `scripts/verify-backup.mjs` — 27 checks on the backup format, most of them
   about what it must *refuse*. Importing replaces everything, so a malformed
   file being accepted is the one bug here that destroys data silently.
@@ -141,12 +142,22 @@ animations repeat those numbers by hand, since CSS cannot read the table.
 
 ## Themes
 
-Five palettes — Tokyo Night (default), Gruvbox Dark, Catppuccin Mocha, Nord,
-and Catppuccin Latte, which is light. Every colour in the app resolves through
-a CSS custom property on `:root`, so a theme is a set of values written onto
-`documentElement` and nothing downstream needs to know theme switching exists.
-The saved theme is applied in `main.jsx` before React mounts, so a Latte user
-never sees an indigo frame on the way in.
+Four palettes, listed darkest to lightest: Tokyo Night (default), Nord, Slate,
+and Catppuccin Latte. Two dark, two light, and the running order is asserted by
+the verify suite rather than merely intended — a new palette appended to the end
+of the array, where it is easiest to type, fails the build.
+
+Three are borrowed from IDE themes people already recognise. Slate is ours,
+because there is no canonical neutral grey to borrow and the gap was a light
+theme with no hue in it at all: every grey in it has `r == g == b`, so the only
+colour on screen is colour that means something.
+
+Every colour in the app resolves through a CSS custom property on `:root`, so a
+theme is a set of values written onto `documentElement` and nothing downstream
+needs to know theme switching exists. The saved theme is applied in `main.jsx`
+before React mounts, so a Latte user never sees an indigo frame on the way in.
+A theme id that no longer exists — from an old install or an imported backup —
+falls back to the default rather than erroring.
 
 The green/amber/red the bar mixes through come from the active theme too, which
 is the one place a theme can do real damage: Tokyo Night's green on Latte's
@@ -157,7 +168,14 @@ every token against every ground, that green/amber/red stay distinguishable
 *from each other* in Oklab, that the "deep" red really is darker than the red it
 deepens from, that light themes invert elevation correctly, and that no point
 along a theme's actual 0–200% colour ramp dips below 3:1 or desaturates toward
-grey. Four of the five palettes needed adjusting to pass.
+grey, and that the palettes run darkest to lightest with no two adjacent ones
+close enough to read as the same choice.
+
+A light ground is the hard case: a status colour has to clear 3:1 against both
+the page and a panel, which forces it dark, while green, amber and red still
+have to be tellable apart from each other once they are. Slate's were picked by
+searching OKLCH for the most separable set inside that band rather than by eye,
+then pulled back off the gamut edge so they suit a colourless ground.
 
 ## Edge cases worth knowing about
 
@@ -202,7 +220,7 @@ src/
     budgetEngine.js    the algorithm above — pure, fully tested
     cadence.js         payday arithmetic and period derivation
     color.js           sRGB <-> OKLCH conversion and the ramp
-    themes.js          the five palettes and the token writer
+    themes.js          the four palettes and the token writer
     motion.js          durations and easing curves, single source of truth
     dateUtils.js       'YYYY-MM-DD' date maths
   utils/
@@ -217,7 +235,7 @@ src/
   components/          screens and widgets
 scripts/
   verify-engine.mjs    69 scenarios, run with plain node
-  verify-themes.mjs    162 colour checks, likewise
+  verify-themes.mjs    132 colour checks, likewise
   verify-backup.mjs    27 backup-format checks, mostly rejections
   verify-sw.mjs        14 checks on offline, stalled and mid-deploy launches
 ```

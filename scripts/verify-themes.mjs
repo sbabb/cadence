@@ -245,6 +245,37 @@ for (const theme of THEMES) {
   console.log(`  ${summary}\n`)
 }
 
+// The picker renders THEMES in array order, so the array IS the running order,
+// and "darkest to lightest" is a property of it rather than a note in a
+// comment. Asserted because it is exactly the kind of thing that decays: the
+// next palette gets appended to the end of the list, where it is easiest to
+// type, rather than dropped into the position its background belongs in.
+check('themes run darkest to lightest', () => {
+  const order = THEMES.map((t) => ({ id: t.id, l: luminance(t.tokens.bg) }))
+  for (let i = 1; i < order.length; i += 1) {
+    assert.ok(
+      order[i].l > order[i - 1].l,
+      `${order[i].id} (bg luminance ${order[i].l.toFixed(3)}) should sit after something darker, ` +
+        `but follows ${order[i - 1].id} (${order[i - 1].l.toFixed(3)})`
+    )
+  }
+})
+
+// Two themes a user cannot tell apart in the picker are one theme and a
+// puzzle. Adjacent entries are the pair most at risk, since the list is sorted
+// by exactly the quantity being compared.
+check('adjacent themes are visibly different from each other', () => {
+  for (let i = 1; i < THEMES.length; i += 1) {
+    const a = THEMES[i - 1]
+    const b = THEMES[i]
+    const c = contrast(a.tokens.bg, b.tokens.bg)
+    assert.ok(
+      c >= 1.15,
+      `${a.id} and ${b.id} backgrounds are only ${ratio(c)} apart - they will read as the same choice`
+    )
+  }
+})
+
 // Ids have to be unique - they're the persisted value, and a duplicate would
 // silently make one theme unreachable.
 check('theme ids are unique', () => {

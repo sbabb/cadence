@@ -590,7 +590,7 @@ input, button, select, textarea {
   );
   background-size: 220% 100%;
   /* Overlay rather than a flat white wash: it lifts a dark fill and does not
-     blow out a bright one, so the same rule works across all five themes. */
+     blow out a bright one, so the same rule works across every theme. */
   mix-blend-mode: overlay;
   pointer-events: none;
   animation: bar-sheen 5200ms linear infinite;
@@ -1704,9 +1704,9 @@ input, button, select, textarea {
   color: var(--text-mid);
 }
 
-/* A window rather than five loose chips: the border and the ground behind the
-   colours are that theme's too, which is most of what tells Latte apart from
-   Mocha at a glance. */
+/* A window rather than a row of loose chips: the border and the ground behind
+   the colours are that theme's too, which is most of what tells the two light
+   palettes apart from each other at a glance. */
 .theme-swatches {
   display: flex;
   flex: 0 0 auto;
