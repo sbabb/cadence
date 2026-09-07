@@ -4,9 +4,10 @@
 # After that this runs by itself and the app is live at
 # https://<user>.github.io/cadence/ a minute or two after each push.
 #
-# The verify step is here on purpose: the engine, theme and backup checks all
-# run before anything is published, so a build that breaks the numbers or the
-# backup format never reaches a phone.
+# The verify step is here on purpose: the engine, theme, backup and service
+# worker checks all run before anything is published, so a build that breaks
+# the numbers, the backup format, or the app's ability to open at all never
+# reaches a phone.
 name: Deploy to GitHub Pages
 
 on:
@@ -38,7 +39,7 @@ jobs:
 
       - run: npm ci
 
-      - name: Verify engine, themes and backup format
+      - name: Verify engine, themes, backup format and service worker
         run: npm run verify
 
       - run: npm run build

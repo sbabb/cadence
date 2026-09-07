@@ -938,12 +938,12 @@ input, button, select, textarea {
   animation: slide-up 0.18s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-/* The generous bottom padding is there to clear a phone's home indicator.
-   With the keyboard up, the keyboard is what's below the sheet - so the gap
-   is dead space in the one situation where vertical room is scarcest. */
-/* Keyboard up. It covers the home indicator strip outright, so the inset
-   above is not merely unnecessary here, it would open a visible gap between
-   the sheet and the keyboard. Declared after .log-spend-sheet so it wins. */
+/* The generous bottom padding above is there to clear a phone's home
+   indicator. With the keyboard up, the keyboard is what's below the sheet and
+   it covers that strip outright - so the gap is not merely unnecessary, it is
+   dead space in the one situation where vertical room is scarcest, and it
+   would show as a band between the sheet and the keyboard. Declared after
+   .log-spend-sheet so it wins on source order alone. */
 .log-spend-sheet-lifted {
   padding-bottom: 14px;
 }
