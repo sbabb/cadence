@@ -9,9 +9,21 @@
          partly behind the keyboard, which is why the spend sheet's SET TOTAL
          and CANCEL buttons had to be dragged into view.
 
+         viewport-fit=cover hands us the WHOLE screen on a device with a
+         display cutout, insets included, and index.css pays them back with
+         env(safe-area-inset-*). Left alone, the viewport stops at the safe
+         area and iOS fills the strips above and below with the manifest's
+         background_color - a single baked-in hex that cannot follow the
+         theme, so a Catppuccin Latte user got a near-white app framed in
+         Tokyo Night indigo. Covering the screen lets --bg reach every edge
+         and around the Dynamic Island, and it settles the argument this file
+         used to be having with itself: black-translucent below asks for
+         content under the status bar, which the default viewport-fit refuses
+         to give it.
+
          maximum-scale is deliberately gone: pinch-zoom is an accessibility
          feature and blocking it never fixed anything here. -->
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, interactive-widget=resizes-content" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content" />
     <link rel="icon" href="./icons/icon-48.png" />
     <!-- Installing to a home screen: the manifest names the app and supplies
          the icons, apple-touch-icon covers iOS, which ignores the manifest's.

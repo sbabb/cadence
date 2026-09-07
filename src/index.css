@@ -98,12 +98,25 @@ input, button, select, textarea {
   outline-offset: 1px;
 }
 
+/* The 14px gutter, plus whatever the device keeps for itself.
+ *
+ * index.html asks for the whole screen (viewport-fit=cover), so the cutout is
+ * ours to handle: env(safe-area-inset-*) is the status bar and Dynamic Island
+ * at the top, the home indicator at the bottom, and in landscape the Island
+ * again at one side. Every one of them resolves to 0 on hardware without a
+ * cutout - every Android phone, every desktop, every older iPhone - so this
+ * costs those devices nothing and is not worth guarding with a media query.
+ */
 .app-shell {
   min-height: 100vh;
   width: 100%;
   max-width: 480px;
   margin: 0 auto;
-  padding: 14px;
+  padding:
+    calc(14px + env(safe-area-inset-top))
+    calc(14px + env(safe-area-inset-right))
+    calc(14px + env(safe-area-inset-bottom))
+    calc(14px + env(safe-area-inset-left));
   position: relative;
 }
 
@@ -807,6 +820,9 @@ input, button, select, textarea {
 
 /* ---------- Confirm dialog ---------- */
 
+/* Covers the screen edge to edge, so its own padding has to clear the cutout.
+   max() rather than a sum: 24px is already generous, and on a device with no
+   insets it stays exactly 24px. */
 .confirm-backdrop {
   position: fixed;
   inset: 0;
@@ -814,7 +830,11 @@ input, button, select, textarea {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 24px;
+  padding:
+    max(24px, env(safe-area-inset-top))
+    max(24px, env(safe-area-inset-right))
+    max(24px, env(safe-area-inset-bottom))
+    max(24px, env(safe-area-inset-left));
   z-index: 400;
 }
 
@@ -908,12 +928,22 @@ input, button, select, textarea {
      pushing its own buttons off the bottom of the screen. */
   max-height: 100%;
   overflow-y: auto;
+  /* The sheet sits flush against the bottom of the screen, which on an iPhone
+     is where the home indicator lives - CANCEL would otherwise share that
+     strip with it. max() rather than adding the inset on: 28px was already
+     close to the indicator's own 34px, and Android's gesture bar reports less
+     than 28px, so that platform keeps the spacing it has today and only iOS
+     gains the few pixels it actually needs. */
+  padding-bottom: max(28px, env(safe-area-inset-bottom));
   animation: slide-up 0.18s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 /* The generous bottom padding is there to clear a phone's home indicator.
    With the keyboard up, the keyboard is what's below the sheet - so the gap
    is dead space in the one situation where vertical room is scarcest. */
+/* Keyboard up. It covers the home indicator strip outright, so the inset
+   above is not merely unnecessary here, it would open a visible gap between
+   the sheet and the keyboard. Declared after .log-spend-sheet so it wins. */
 .log-spend-sheet-lifted {
   padding-bottom: 14px;
 }
