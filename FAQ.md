@@ -2,7 +2,8 @@
 
 Everything people actually ask, with the real numbers rather than reassuring
 adjectives. If you only read one section, read **Your data lives on your phone
-and nowhere else**.
+and nowhere else**. If you are deciding whether to trust it at all, read **Is it
+safe to install?**.
 
 ---
 
@@ -83,6 +84,56 @@ natural moment to take one.
 Yes, it's plain text JSON. You can open it in any text editor. Import is
 deliberately strict, though — a file that has been edited into an invalid shape
 gets refused at the door with a reason, rather than half-loaded.
+
+---
+
+## Is it safe to install?
+
+**Can it damage my phone?**
+No. Cadence is a web page, and web pages run inside a sandbox enforced by your
+browser — by Apple, Google and Mozilla, not by us. Nothing on a web page can
+damage hardware, change your operating system settings, reach another app's
+data, or touch your files. That holds even if the app has a bug in it.
+
+**Installing it to my home screen doesn't change that?**
+No. What gets installed is the same sandboxed page, just without the browser's
+address bar around it. It is not a native app and it gains no new powers by
+being installed.
+
+**What permissions does it ask for?**
+None. No camera, no microphone, no location, no contacts, no photos, no
+notifications. The only thing it ever asks the browser is *please don't delete
+my storage* — and on Firefox that appears as a prompt you can decline.
+
+**Can my spending data get out?**
+There is no code in the app that contacts a network, so there is no channel for
+it to leave by. Not "we promise not to" — there is no send function to
+misuse. The only way data moves off your device is the backup file you export
+yourself.
+
+**Can I check that rather than take your word for it?**
+Yes, and it takes about a minute. Open the app on a computer, press **F12**,
+click the **Network** tab, then use it — log a spend, change the theme, open
+Settings. You will see the files load once and then nothing further. No rows
+means nothing is being sent.
+
+**Are there hidden trackers or ads?**
+No analytics, no advertising, no third-party scripts of any kind. The font is
+served from the app itself rather than pulled from Google, so even loading the
+page tells nobody anything.
+
+**So what is the worst that could realistically happen?**
+Your Cadence history gets corrupted or lost, or a daily limit comes out wrong.
+The first is why **EXPORT BACKUP** exists and why the app warns you rather than
+quietly starting over. The second is what the 246 automated checks that run
+before every single update are there to catch. Neither one reaches anything
+else on your phone.
+
+**Who made this and is it supported?**
+One person, as a personal project, given away free under an MIT licence — which
+like nearly all free software comes with no warranty. It is offered in good
+faith and used at your own discretion. Keep a backup, which is good advice for
+anything you would be annoyed to lose.
 
 ---
 
