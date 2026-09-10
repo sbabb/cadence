@@ -45,7 +45,7 @@ app.
 | What you want | Command |
 | --- | --- |
 | Run the app for everyday use | `npm run dev` |
-| Check nothing is broken (242 checks) | `npm run verify` |
+| Check nothing is broken (246 checks) | `npm run verify` |
 | Make the real production build | `npm run build` |
 | Look at that production build | `npm run preview` |
 | Reinstall dependencies (rarely needed) | `npm install` |

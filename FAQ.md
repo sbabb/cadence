@@ -212,6 +212,16 @@ papered over, and it helps you start fresh.
 **Settings → Pay Cadence.** Weekly, every two weeks (26/yr), twice a month
 (24/yr), monthly, or set your own dates each time.
 
+Note that "every two weeks" and "twice a month" are not the same schedule — 26
+pay periods against 24, and only one of them can be right for you. Every two
+weeks keeps the same *weekday* and lets the date wander; twice a month keeps the
+same *dates* and lets the weekday wander.
+
+If you are paid twice a month, just enter either one of your two paydays and it
+works out the other. The 1st and 16th, the 5th and 20th, the 15th and the last
+day of the month — all handled, and the last day of the month follows February
+without you having to fix it.
+
 **How do I change my budget mid-period?**
 **Settings → Edit Current Period** changes the amount and the end date. Every
 daily limit recalculates. If shrinking the period would hide days you already

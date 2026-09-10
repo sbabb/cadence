@@ -16,6 +16,7 @@ import {
   dailyLimitFor,
   entriesOutsideRange
 } from '../src/utils/budgetEngine.js'
+import { parseDateStr } from '../src/utils/dateUtils.js'
 import {
   nextPaydayAfter,
   derivePeriodFromPayday,
@@ -562,7 +563,6 @@ scenario('weekly / twice-monthly / monthly derive sensible period lengths', () =
     startDate: '2026-08-20',
     endDate: '2026-08-26'
   })
-  // Semi-monthly pays on the 1st and the 16th.
   assert.deepEqual(derivePeriodFromPayday('2026-08-01', 'twice-monthly'), {
     startDate: '2026-08-01',
     endDate: '2026-08-15'
@@ -580,12 +580,111 @@ scenario('weekly / twice-monthly / monthly derive sensible period lengths', () =
 scenario('monthly clamps the day-of-month across shorter months, and rolls the year', () => {
   assert.equal(nextPaydayAfter('2026-01-31', 'monthly'), '2026-02-28')
   assert.equal(nextPaydayAfter('2026-12-10', 'monthly'), '2027-01-10')
-  assert.equal(nextPaydayAfter('2026-12-16', 'twice-monthly'), '2027-01-01')
 })
 
 scenario('manual cadence derives nothing - the user sets their own dates', () => {
   assert.equal(derivePeriodContaining('2026-08-20', 'manual', '2026-08-31'), null)
   assert.equal(nextPaydayAfter('2026-08-20', 'manual'), null)
+})
+
+scenario('an unrecognised cadence derives nothing rather than throwing', () => {
+  // Whatever is in storage is not necessarily something this build offers: an
+  // older install, a hand-edited blob, a backup from a future version. It has
+  // to degrade to the manual path - the setup screen arrives unfilled - rather
+  // than crash the end-of-period flow on the one morning it is load-bearing.
+  assert.equal(nextPaydayAfter('2026-08-20', 'fortnightly-ish'), null)
+  assert.equal(derivePeriodFromPayday('2026-08-20', 'fortnightly-ish'), null)
+  assert.equal(derivePeriodContaining('2026-08-20', 'fortnightly-ish', '2026-08-31'), null)
+  assert.equal(
+    deriveNextPeriod({ startDate: '2026-08-01', endDate: '2026-08-15' }, 'fortnightly-ish', '2026-08-16'),
+    null
+  )
+})
+
+// --- DIAL: semi-monthly, which is the one cadence defined by calendar dates ---
+scenario('twice-monthly derives BOTH paydays from the one date the user gave', () => {
+  // The schedules people are actually on. Each is entered from either half of
+  // the pair, because onboarding asks for the last payday and that is a coin
+  // flip as to which one it is.
+  const schedules = [
+    ['2026-01-01', ['2026-01-16', '2026-02-01', '2026-02-16']],
+    ['2026-01-16', ['2026-02-01', '2026-02-16', '2026-03-01']],
+    ['2026-01-05', ['2026-01-20', '2026-02-05', '2026-02-20']],
+    ['2026-01-20', ['2026-02-05', '2026-02-20', '2026-03-05']],
+    ['2026-01-10', ['2026-01-25', '2026-02-10', '2026-02-25']]
+  ]
+  for (const [start, expected] of schedules) {
+    let payday = start
+    for (const want of expected) {
+      payday = nextPaydayAfter(payday, 'twice-monthly')
+      assert.equal(payday, want, `${start}: expected ${want}`)
+    }
+  }
+})
+
+scenario('the 15th and the LAST day tracks the length of each month by itself', () => {
+  // The case a day number cannot express, and the reason the pair carries a
+  // symbol rather than a 31: the last payday of the month is the 31st, the
+  // 30th, the 28th or the 29th, and a user should never have to correct it.
+  let payday = '2026-01-15'
+  const expected = [
+    '2026-01-31', '2026-02-15', '2026-02-28', '2026-03-15', '2026-03-31',
+    '2026-04-15', '2026-04-30', '2026-05-15', '2026-05-31'
+  ]
+  for (const want of expected) {
+    payday = nextPaydayAfter(payday, 'twice-monthly')
+    assert.equal(payday, want)
+  }
+  // February gains its 29th in a leap year without anything being told about it.
+  assert.equal(nextPaydayAfter('2028-02-15', 'twice-monthly'), '2028-02-29')
+  assert.equal(nextPaydayAfter('2028-02-29', 'twice-monthly'), '2028-03-15')
+  // And the year rolls over from either half of the pair.
+  assert.equal(nextPaydayAfter('2026-12-16', 'twice-monthly'), '2027-01-01')
+  assert.equal(nextPaydayAfter('2026-12-31', 'twice-monthly'), '2027-01-15')
+})
+
+scenario('a twice-monthly schedule never wanders as it is rolled forward', () => {
+  // The property the whole design rests on. The callers step one payday at a
+  // time, re-deriving the pair from wherever they have got to, so both members
+  // of a pair MUST derive that same pair back. If they don't, a schedule
+  // silently migrates to a different one after a month or two - which is
+  // exactly what the hardcoded 1st-and-16th version did to everybody not on it.
+  const lastDayOf = (dateStr) => {
+    const d = parseDateStr(dateStr)
+    return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 0)).getUTCDate()
+  }
+
+  for (const start of ['2026-01-01', '2026-01-16', '2026-01-15', '2026-01-31',
+                       '2026-01-05', '2026-01-20', '2026-01-10', '2026-01-25']) {
+    // Which two slots this schedule should keep for good, taken from its own
+    // first full month rather than assumed.
+    let payday = start
+    const first = nextPaydayAfter(payday, 'twice-monthly')
+    const second = nextPaydayAfter(first, 'twice-monthly')
+    const slots = [first, second].map((d) => (Number(d.slice(8)) === lastDayOf(d) ? 'last' : d.slice(8))).sort()
+
+    payday = start
+    const perMonth = new Map()
+    for (let i = 0; i < 48; i += 1) {
+      payday = nextPaydayAfter(payday, 'twice-monthly')
+      const month = payday.slice(0, 7)
+      perMonth.set(month, (perMonth.get(month) || 0) + 1)
+      const day = Number(payday.slice(8))
+      const slot = day === lastDayOf(payday) ? 'last' : payday.slice(8)
+      assert.equal(
+        slots.includes(slot),
+        true,
+        `${start}: payday ${payday} fell outside the ${slots.join(' / ')} schedule it started on`
+      )
+    }
+    // Twice a month, every month - which is what makes it 24 a year and not 26.
+    // The first and last months of the window are partial, so they are exempt.
+    const complete = [...perMonth.entries()].slice(1, -1)
+    for (const [month, count] of complete) {
+      assert.equal(count, 2, `${start}: ${month} had ${count} paydays rather than 2`)
+    }
+    assert.equal(complete.length >= 22, true, `${start}: expected roughly two years of months`)
+  }
 })
 
 scenario('the next period follows the one that just ended, with no gap and no overlap', () => {

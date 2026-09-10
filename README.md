@@ -40,7 +40,9 @@ through, never generated in advance.
 
 - **Payday-based setup.** Tell it when you were last paid, how often, and how
   much you can spend. It derives the period. Weekly, every two weeks (26/yr),
-  twice a month (24/yr), monthly, or set your own dates.
+  twice a month (24/yr), monthly, or set your own dates. Twice a month works out
+  *both* of your paydays from the one you entered — including the 15th-and-last
+  pairing, where the second one moves with the length of the month.
 - **A bar you tap to log.** It depletes as you spend and shifts continuously
   green → amber → red. Go over and it refills *backwards* from zero in red
   rather than just bottoming out.
@@ -78,7 +80,7 @@ npm run preview    # serve the build
 npm run verify     # all four suites below, no dependencies, plain node
 ```
 
-- `scripts/verify-engine.mjs` — 69 scenarios over the algorithm above.
+- `scripts/verify-engine.mjs` — 73 scenarios over the algorithm above.
 - `scripts/verify-themes.mjs` — 132 contrast, colour-ramp and running-order
   checks for every theme. See *Themes* below for why this one isn't optional.
 - `scripts/verify-backup.mjs` — 27 checks on the backup format, most of them
@@ -234,7 +236,7 @@ src/
     useKeyboardInset.js  visualViewport fallback for the on-screen keyboard
   components/          screens and widgets
 scripts/
-  verify-engine.mjs    69 scenarios, run with plain node
+  verify-engine.mjs    73 scenarios, run with plain node
   verify-themes.mjs    132 colour checks, likewise
   verify-backup.mjs    27 backup-format checks, mostly rejections
   verify-sw.mjs        14 checks on offline, stalled and mid-deploy launches

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { todayStr, compareDateStr, addDays } from '../utils/dateUtils.js'
 import { DEFAULT_THEME } from '../utils/themes.js'
+import { CADENCE_OPTIONS } from '../utils/cadence.js'
 import {
   reconcilePeriod,
   buildPeriodSchedule,
@@ -34,8 +35,17 @@ function loadData() {
       return { data: EMPTY(), unreadable: true }
     }
     const parsedSettings = parsed.settings && typeof parsed.settings === 'object' ? parsed.settings : {}
+    const settings = { ...DEFAULT_SETTINGS, ...parsedSettings }
+    // A cadence this build doesn't offer - an older install, a hand-edited blob,
+    // a backup written by a later version - is read back as 'manual' rather than
+    // kept verbatim. The derivation already declines to work with an unknown
+    // value, so the behaviour is the manual one either way; what this fixes is
+    // the Settings picker, which would otherwise show five options with none of
+    // them highlighted and no way to tell what is actually set. Same policy the
+    // backup importer has always applied to a value it doesn't recognise.
+    if (!CADENCE_OPTIONS.some((c) => c.value === settings.cadence)) settings.cadence = 'manual'
     return {
-      data: { periods: parsed.periods, settings: { ...DEFAULT_SETTINGS, ...parsedSettings } },
+      data: { periods: parsed.periods, settings },
       unreadable: false
     }
   } catch (err) {

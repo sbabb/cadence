@@ -20,7 +20,7 @@ import { addDays, compareDateStr, parseDateStr } from './dateUtils.js'
 export const CADENCE_OPTIONS = [
   { value: 'weekly', label: 'EVERY WEEK', detail: '52 pay periods a year' },
   { value: 'biweekly', label: 'EVERY 2 WEEKS', detail: '26 pay periods a year' },
-  { value: 'twice-monthly', label: 'TWICE A MONTH', detail: '24 pay periods — 1st and 16th' },
+  { value: 'twice-monthly', label: 'TWICE A MONTH', detail: '24 pay periods a year' },
   { value: 'monthly', label: 'ONCE A MONTH', detail: '12 pay periods a year' },
   { value: 'manual', label: 'SOMETHING ELSE', detail: "I'll set my own dates each time" }
 ]
@@ -40,6 +40,44 @@ function daysInMonth(year, monthIndex0) {
   return new Date(Date.UTC(year, monthIndex0 + 1, 0)).getUTCDate()
 }
 
+// Semi-monthly means two paydays a month on fixed days, and the pair has to be
+// worked out from the single date the user gave us - the same one question the
+// other cadences are derived from.
+//
+// An earlier version hardcoded the 1st and the 16th. That pairing is real and
+// common, but it is one schedule among several, and anyone on a different one
+// was quietly moved onto it: enter the 5th and you were paid on the 5th and the
+// 20th in life and the 1st and the 16th in the app, forever. Deriving the pair
+// fixes that, and the fixed points below are chosen so that BOTH members of a
+// pair derive the same pair back - which is what lets the callers roll forward
+// one payday at a time without the schedule wandering.
+const LAST_DAY = 'last'
+
+function semiMonthlyPair(day) {
+  // The 15th and the last day is the other schedule payroll systems ship by
+  // default, and "the last day" is not a day number - it is the 31st, the 30th,
+  // and the 28th or 29th. Carrying it as a symbol rather than a number is the
+  // whole point: a fixed 31 would need correcting by hand in every short month,
+  // which is precisely the friction a cadence exists to remove.
+  //
+  // Day 28 upward all resolve to LAST_DAY rather than only the 31st, because
+  // February's last payday IS the 28th and the pair has to survive being
+  // re-derived from it. The cost is that a genuine 13th-and-28th schedule
+  // settles onto the 15th and the last day after one period. Nobody is paid on
+  // the 13th and the 28th; plenty of people are paid on the 15th and the last.
+  if (day === 15 || day >= 28) return [15, LAST_DAY]
+  if (day < 15) return [day, day + 15]
+  return [day - 15, day]
+}
+
+// Turns one half of a pair into a real date in a given month. A day number past
+// the end of a short month clamps to its final day, the same way `monthly`
+// handles a payday on the 31st.
+function resolveDay(year, monthIndex0, spec) {
+  const last = daysInMonth(year, monthIndex0)
+  return dateStrFrom(year, monthIndex0, spec === LAST_DAY ? last : Math.min(spec, last))
+}
+
 // The next payday STRICTLY after the given one. Everything else in this file
 // is built on top of this, so the awkward cases only have to be right once.
 //
@@ -57,15 +95,21 @@ export function nextPaydayAfter(paydayStr, cadence) {
     case 'biweekly':
       return addDays(paydayStr, 14)
     case 'twice-monthly': {
-      // Paydays are the 1st and the 16th.
       const d = parseDateStr(paydayStr)
       const year = d.getUTCFullYear()
       const month = d.getUTCMonth()
-      const day = d.getUTCDate()
-      if (day < 16) return dateStrFrom(year, month, 16)
+      const [first, second] = semiMonthlyPair(d.getUTCDate())
+
+      // Whichever of this month's two paydays is still ahead; failing that, the
+      // first one next month.
+      const firstThisMonth = resolveDay(year, month, first)
+      if (compareDateStr(paydayStr, firstThisMonth) < 0) return firstThisMonth
+      const secondThisMonth = resolveDay(year, month, second)
+      if (compareDateStr(paydayStr, secondThisMonth) < 0) return secondThisMonth
+
       const nextMonth = month === 11 ? 0 : month + 1
       const nextYear = month === 11 ? year + 1 : year
-      return dateStrFrom(nextYear, nextMonth, 1)
+      return resolveDay(nextYear, nextMonth, first)
     }
     case 'monthly': {
       // Same day next month, clamped so the 31st doesn't overshoot February.
@@ -78,6 +122,9 @@ export function nextPaydayAfter(paydayStr, cadence) {
       return dateStrFrom(nextYear, nextMonth, Math.min(day, daysInMonth(nextYear, nextMonth)))
     }
     default:
+      // 'manual', and any cadence a previous version of the app offered. An
+      // unknown value derives nothing rather than throwing, so the setup screen
+      // simply arrives unfilled instead of the end-of-period flow crashing.
       return null
   }
 }
