@@ -94,45 +94,6 @@ export const THEMES = [
     }
   },
   {
-    id: 'nord',
-    label: 'NORD',
-    detail: 'Cold, muted, low contrast.',
-    mode: 'dark',
-    tokens: {
-      // Nord's own #2e3440 is the usual background, but it's a pale ground
-      // for a dark theme and Nord's accents are deliberately muted - on it,
-      // Nord red lands at 2.75:1, which is not a colour you can read a number
-      // in. Dropping to the darker Polar Night shade and sliding everything
-      // else up one keeps every published Nord colour intact and buys the
-      // whole palette the contrast it needs.
-      bg: '#242933',
-      bgPanel: '#2a303b',
-      bgElevated: '#3b4252',
-      border: '#4c566a',
-      borderBright: '#616e88',
-      text: '#eceff4',
-      textMid: '#c2ccdb',
-      textDim: '#98a3b8',
-      green: '#a3be8c',
-      amber: '#ebcb8b',
-      // Nord 11 (#bf616a) is the DEEP end here rather than the base red. It's
-      // the darkest rose that still clears 3:1 on a Polar Night ground, so
-      // there's nothing legible left below it - the base red has to sit above
-      // it instead, which is also the right way round: the deep one is the
-      // one you're meant to see only when things have gone badly.
-      red: '#d3777f',
-      redDeep: '#bf616a',
-      teal: '#8fbcbb',
-      blue: '#81a1c1',
-      cyan: '#88c0d0',
-      purple: '#b48ead',
-      orange: '#d08770',
-      trackOver: '#42303a',
-      scrim: 'rgba(24, 28, 36, 0.84)',
-      scrimStrong: 'rgba(24, 28, 36, 0.91)'
-    }
-  },
-  {
     id: 'slate',
     label: 'SLATE',
     detail: 'Neutral grey. Light without the tint.',
@@ -144,17 +105,20 @@ export const THEMES = [
       // accents below are muted rather than vivid - full-strength colour on a
       // colourless ground reads as though it wandered in from another app.
       //
-      // Light like Latte, but a clear step darker: #dcdcdc against Latte's
-      // #eff1f5 is 1.21:1, which is enough that the two never look like the
-      // same choice made twice in the picker.
-      bg: '#dcdcdc',
-      bgPanel: '#d0d0d0',
-      bgElevated: '#c2c2c2',
-      border: '#a4a4a4',
-      borderBright: '#888888',
+      // The greys are Grey Fog's, an Omarchy desktop theme, so the app sits on
+      // the same ground as the desktop it was written on. With only three
+      // palettes left this one carries the whole middle of the range by itself,
+      // and a darker ground is what makes that middle read as a third choice
+      // rather than a dimmer Latte: #d6d6d6 against Latte's #eff1f5 is 1.29:1,
+      // where the older #dcdcdc managed 1.21 against a 1.15 floor.
+      bg: '#d6d6d6',
+      bgPanel: '#c8c8c8',
+      bgElevated: '#bababa',
+      border: '#9c9c9c',
+      borderBright: '#7a7a7a',
       text: '#1c1c1c',
       textMid: '#454545',
-      textDim: '#585858',
+      textDim: '#565656',
       // Chosen by search rather than by eye - see scripts/verify-themes.mjs
       // for the rules they had to satisfy. A light ground is the hard case for
       // this app: every status colour has to clear 3:1 on BOTH the page and a
@@ -176,8 +140,8 @@ export const THEMES = [
       purple: '#6d3d8d',
       orange: '#8e3518',
       // The over-budget track: enough pink to read as wrong, pale enough that
-      // the deep red fill still stands off it.
-      trackOver: '#e3c4ca',
+      // the deep red fill still stands off it. Stepped down with the ground.
+      trackOver: '#e0c0c6',
       // Dark scrims on a light theme, same reasoning as Latte's - a pale wash
       // over pale content leaves the dialog floating in fog.
       scrim: 'rgba(28, 28, 28, 0.55)',

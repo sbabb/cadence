@@ -41,7 +41,7 @@ const sample = {
       entries: [{ date: '2026-08-15', amount: 0 }]
     }
   ],
-  settings: { cadence: 'biweekly', theme: 'nord' }
+  settings: { cadence: 'biweekly', theme: 'slate' }
 }
 
 const roundTrip = (data) => parseBackup(JSON.stringify(buildBackup(data)))
@@ -52,7 +52,7 @@ check('a backup round-trips without losing anything', () => {
   const result = roundTrip(sample)
   assert.equal(result.ok, true)
   assert.equal(result.data.periods.length, 2)
-  assert.equal(result.data.settings.theme, 'nord')
+  assert.equal(result.data.settings.theme, 'slate')
   assert.equal(result.data.settings.cadence, 'biweekly')
   assert.equal(result.data.periods[0].initialAmount, 700)
 })
@@ -116,7 +116,7 @@ check('an unknown theme falls back rather than rejecting real spend history', ()
 })
 
 check('an unknown cadence falls back to manual', () => {
-  const odd = { ...sample, settings: { cadence: 'fortnightly-ish', theme: 'nord' } }
+  const odd = { ...sample, settings: { cadence: 'fortnightly-ish', theme: 'slate' } }
   const result = roundTrip(odd)
   assert.equal(result.ok, true)
   assert.equal(result.data.settings.cadence, 'manual')

@@ -8,7 +8,7 @@
  * documentElement to switch palettes. So this block is what the app looks like
  * before any preference is read, and the shape every theme has to fill in.
  * Anything new that needs a colour takes it from here; a literal hex added
- * downstream is a colour that will be wrong in four themes out of five.
+ * downstream is a colour that will be wrong in two themes out of three.
  *
  * The rules the design follows, so later additions stay consistent:
  *   - Sharp corners. No border radius anywhere.

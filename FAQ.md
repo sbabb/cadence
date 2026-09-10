@@ -125,7 +125,7 @@ page tells nobody anything.
 **So what is the worst that could realistically happen?**
 Your Cadence history gets corrupted or lost, or a daily limit comes out wrong.
 The first is why **EXPORT BACKUP** exists and why the app warns you rather than
-quietly starting over. The second is what the 246 automated checks that run
+quietly starting over. The second is what the 214 automated checks that run
 before every single update are there to catch. Neither one reaches anything
 else on your phone.
 
@@ -283,8 +283,9 @@ Ends the current period today and starts the next one tomorrow. It is an escape
 hatch for a period set up wrong, not something you need in normal use.
 
 **Can I change how it looks?**
-**Settings → Theme.** Four palettes, darkest to lightest: Tokyo Night, Nord,
-Slate, Catppuccin Latte. Applies instantly.
+**Settings → Theme.** Three palettes, darkest to lightest: Tokyo Night (deep
+indigo), Slate (neutral grey), Catppuccin Latte (light). Applies instantly, and
+your choice survives closing the app.
 
 ---
 

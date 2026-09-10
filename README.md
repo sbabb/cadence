@@ -54,8 +54,8 @@ through, never generated in advance.
   back on another phone. There is no account and no server, so this is how a
   history survives a new device — offered in Settings and again at the end of
   each period, which is the natural moment to take a copy.
-- **Four themes**, ordered darkest to lightest, switchable in Settings and
-  applied instantly.
+- **Three themes** — dark, mid grey, light — switchable in Settings and applied
+  instantly.
 - **Period history** you swipe back through, an end-of-period summary that
   states the facts without moralising, and a trends chart across every period —
   tap any bar to jump straight to that period.
@@ -81,7 +81,7 @@ npm run verify     # all four suites below, no dependencies, plain node
 ```
 
 - `scripts/verify-engine.mjs` — 73 scenarios over the algorithm above.
-- `scripts/verify-themes.mjs` — 132 contrast, colour-ramp and running-order
+- `scripts/verify-themes.mjs` — 100 contrast, colour-ramp and running-order
   checks for every theme. See *Themes* below for why this one isn't optional.
 - `scripts/verify-backup.mjs` — 27 checks on the backup format, most of them
   about what it must *refuse*. Importing replaces everything, so a malformed
@@ -144,12 +144,20 @@ animations repeat those numbers by hand, since CSS cannot read the table.
 
 ## Themes
 
-Four palettes, listed darkest to lightest: Tokyo Night (default), Nord, Slate,
-and Catppuccin Latte. Two dark, two light, and the running order is asserted by
-the verify suite rather than merely intended — a new palette appended to the end
-of the array, where it is easiest to type, fails the build.
+Three palettes, listed darkest to lightest: Tokyo Night (default), Slate, and
+Catppuccin Latte — dark, mid, light, one of each. The running order is asserted
+by the verify suite rather than merely intended: a new palette appended to the
+end of the array, where it is easiest to type, fails the build.
 
-Three are borrowed from IDE themes people already recognise. Slate is ours,
+Three is a deliberate floor rather than what happened to be left. Nord was cut
+because it sat between Tokyo Night and the light themes without being a
+different *answer* to the question the picker asks — a second cold dark palette
+is a preference between two things a user has to compare, where dark/mid/light
+is a choice they can make at a glance. What remains is one of each, which is
+also why Slate moved onto a darker ground: with nothing either side of it, it
+has to carry the whole middle by itself.
+
+Two are borrowed from IDE themes people already recognise. Slate is ours,
 because there is no canonical neutral grey to borrow and the gap was a light
 theme with no hue in it at all: every grey in it has `r == g == b`, so the only
 colour on screen is colour that means something.
@@ -222,7 +230,7 @@ src/
     budgetEngine.js    the algorithm above — pure, fully tested
     cadence.js         payday arithmetic and period derivation
     color.js           sRGB <-> OKLCH conversion and the ramp
-    themes.js          the four palettes and the token writer
+    themes.js          the three palettes and the token writer
     motion.js          durations and easing curves, single source of truth
     dateUtils.js       'YYYY-MM-DD' date maths
   utils/
@@ -237,7 +245,7 @@ src/
   components/          screens and widgets
 scripts/
   verify-engine.mjs    73 scenarios, run with plain node
-  verify-themes.mjs    132 colour checks, likewise
+  verify-themes.mjs    100 colour checks, likewise
   verify-backup.mjs    27 backup-format checks, mostly rejections
   verify-sw.mjs        14 checks on offline, stalled and mid-deploy launches
 ```
