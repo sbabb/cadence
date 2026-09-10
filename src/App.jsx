@@ -13,6 +13,7 @@ import PeriodSummary from './components/PeriodSummary'
 import LapsedNotice from './components/LapsedNotice'
 import Trends from './components/Trends'
 import Settings from './components/Settings'
+import Faq from './components/Faq'
 import StorageWarning from './components/StorageWarning'
 
 // A gap of this many days or more between a period ending and the user
@@ -93,6 +94,8 @@ export default function App() {
 
   const [showTrends, setShowTrends] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
+  // Opened from Settings and returns there, so the back stack stays honest.
+  const [showFaq, setShowFaq] = useState(false)
 
   // Which period page is currently visible in the swipeable pager. Always
   // snaps back to the newest period whenever one is added (the rightmost
@@ -143,6 +146,7 @@ export default function App() {
   const goHome = () => {
     setShowTrends(false)
     setShowSettings(false)
+    setShowFaq(false)
     setEditingDate(null)
     setHomeNonce((n) => n + 1)
   }
@@ -251,6 +255,8 @@ export default function App() {
         onBack={() => setShowTrends(false)}
       />
     )
+  } else if (showFaq) {
+    screen = <Faq onBack={() => setShowFaq(false)} />
   } else if (showSettings) {
     screen = (
       <Settings
@@ -265,6 +271,7 @@ export default function App() {
         onSetCadence={setCadence}
         onSetTheme={setTheme}
         onAbandonPeriod={handleAbandonPeriod}
+        onOpenFaq={() => setShowFaq(true)}
         onBack={() => setShowSettings(false)}
       />
     )

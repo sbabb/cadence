@@ -2,7 +2,6 @@ import { useRef, useState } from 'react'
 import { formatDisplayDate } from '../utils/dateUtils.js'
 import { CADENCE_OPTIONS } from '../utils/cadence.js'
 import { entriesOutsideRange } from '../utils/budgetEngine.js'
-import { formatDisplayDate as fmt } from '../utils/dateUtils.js'
 import { THEMES } from '../utils/themes.js'
 import { parseBackup } from '../utils/backup.js'
 import { exportBackup, readTextFile } from '../utils/fileTransfer.js'
@@ -29,6 +28,7 @@ export default function Settings({
   onSetCadence,
   onSetTheme,
   onAbandonPeriod,
+  onOpenFaq,
   onBack
 }) {
   const [amountInput, setAmountInput] = useState(String(period.initialAmount))
@@ -323,6 +323,19 @@ export default function Settings({
       </section>
 
       <section className="settings-section">
+        <h2 className="settings-section-title">QUESTIONS</h2>
+        <p className="settings-section-hint">
+          What the app does, where your data lives, whether it is safe to install, and what to do when
+          something looks wrong. It is the same document as FAQ.md in the repository, and it works offline -
+          which is the point, since the moment someone asks is usually the moment you are standing next to
+          them rather than at a computer.
+        </p>
+        <button type="button" className="faq-link-button" onClick={onOpenFaq}>
+          READ THE ANSWERS
+        </button>
+      </section>
+
+      <section className="settings-section">
         <h2 className="settings-section-title">ABANDON CURRENT PERIOD</h2>
         <p className="settings-section-hint">
           Ends the current period today instead of on its scheduled end date and shows you its summary. Today
@@ -342,7 +355,7 @@ export default function Settings({
         <ConfirmDialog
           message={
             `${hideConfirm.dates.length} logged ${hideConfirm.dates.length === 1 ? 'day' : 'days'} ` +
-            `(${hideConfirm.dates.slice(0, 3).map(fmt).join(', ')}` +
+            `(${hideConfirm.dates.slice(0, 3).map(formatDisplayDate).join(', ')}` +
             `${hideConfirm.dates.length > 3 ? `, +${hideConfirm.dates.length - 3} more` : ''}) ` +
             'fall outside the new dates and will stop appearing. Nothing is deleted — widening the ' +
             'period again brings them back.'
@@ -366,7 +379,7 @@ export default function Settings({
             `${pendingImport.summary.loggedDays} logged ` +
             `${pendingImport.summary.loggedDays === 1 ? 'day' : 'days'}` +
             (pendingImport.summary.earliest
-              ? `, ${fmt(pendingImport.summary.earliest)} to ${fmt(pendingImport.summary.latest)}`
+              ? `, ${formatDisplayDate(pendingImport.summary.earliest)} to ${formatDisplayDate(pendingImport.summary.latest)}`
               : '') +
             '. Importing REPLACES everything currently on this device, which cannot be undone.'
           }

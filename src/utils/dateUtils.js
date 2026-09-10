@@ -55,7 +55,7 @@ export function daysBetweenInclusive(fromStr, toStr) {
 
 // Short display form, e.g. "Aug 16".
 export function formatDisplayDate(dateStr) {
-  const [y, m, d] = dateStr.split('-').map(Number)
+  const [, m, d] = dateStr.split('-').map(Number)
   return `${MONTH_NAMES[m - 1]} ${d}`
 }
 

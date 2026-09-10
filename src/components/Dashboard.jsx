@@ -153,7 +153,7 @@ export default function Dashboard({
         </div>
         <div className="stat-box">
           <div className="stat-label">DAILY LIMIT TODAY</div>
-          <div className={`stat-value ${displayedDailyLimit < 0 ? 'negative' : ''}`}>
+          <div className="stat-value">
             {formatMoney(displayedDailyLimit)}
           </div>
           {limitDelta !== null && (

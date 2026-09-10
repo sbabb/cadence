@@ -12,6 +12,14 @@ import {
 // Exported so main.jsx can read the saved theme and paint it BEFORE React's
 // first render - see the note there about why that has to happen outside the
 // component tree.
+//
+// DO NOT RENAME. The app was called budget-habit-tracker before it was called
+// Cadence, and this string is not a label, it is the address. Every existing
+// install's history is filed under it. Change it to match the app's current
+// name and that history is still sitting on the user's phone, but nothing will
+// ever look for it again: they get greeted as a brand new user and reasonably
+// conclude the update ate their data. The mismatch with package.json is the
+// price of not doing that, and it is a bargain.
 export const STORAGE_KEY = 'budgetHabitTracker.v1'
 const DEFAULT_SETTINGS = { cadence: 'manual', theme: DEFAULT_THEME }
 

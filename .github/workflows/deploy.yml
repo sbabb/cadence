@@ -39,7 +39,7 @@ jobs:
 
       - run: npm ci
 
-      - name: Verify engine, themes, backup format and service worker
+      - name: Lint, then verify engine, themes, backup format and service worker
         run: npm run verify
 
       - run: npm run build

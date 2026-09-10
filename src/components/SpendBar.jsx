@@ -233,7 +233,6 @@ export default function SpendBar({
     if (sameDay && isOver && !wasOverRef.current && phase === 'live') firePulse()
     wasOverRef.current = isOver
     lastDateRef.current = dateLabel
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOver, phase, dateLabel])
 
   useEffect(

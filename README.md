@@ -77,8 +77,25 @@ a phone on the LAN address past the firewall.
 ```bash
 npm run build      # production build
 npm run preview    # serve the build
-npm run verify     # all four suites below, no dependencies, plain node
+npm run verify     # lint, FAQ freshness, then all four suites below
+npm run lint       # eslint on its own
+npm run faq        # regenerate the in-app FAQ from FAQ.md
 ```
+
+`FAQ.md` is the single source for the FAQ. `scripts/build-faq.mjs` turns it into
+`src/generated/faq.js`, which Settings → QUESTIONS renders as an in-app screen -
+so it works offline and follows the active theme, which a link out to GitHub
+would not. It emits data rather than HTML, keeping the promise that nothing in
+this codebase hands a string to `dangerouslySetInnerHTML`. `npm run verify`
+fails if `FAQ.md` has been edited without regenerating, so the document and the
+in-app copy cannot drift apart.
+
+The four suites need no dependencies and run on plain node. They prove the
+*arithmetic* — that a paycheque on the 31st lands correctly in February — but
+they never mount a component, so they are blind to the class of bug that lives
+in React itself: a value captured stale in a closure, an effect that re-runs
+when it shouldn't. `eslint.config.js` covers that gap and runs first. It is
+not a style guide; every rule in it describes a way the app can misbehave.
 
 - `scripts/verify-engine.mjs` — 73 scenarios over the algorithm above.
 - `scripts/verify-themes.mjs` — 100 contrast, colour-ramp and running-order
@@ -243,7 +260,9 @@ src/
     useThemeColors.js  the active ramp colours, via context
     useKeyboardInset.js  visualViewport fallback for the on-screen keyboard
   components/          screens and widgets
+eslint.config.js       the React bugs the suites below cannot see
 scripts/
+  build-faq.mjs        FAQ.md -> src/generated/faq.js, for the in-app FAQ
   verify-engine.mjs    73 scenarios, run with plain node
   verify-themes.mjs    100 colour checks, likewise
   verify-backup.mjs    27 backup-format checks, mostly rejections

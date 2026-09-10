@@ -1,13 +1,17 @@
 {
-  "name": "budget-habit-tracker",
+  "name": "cadence",
   "private": true,
   "version": "1.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "predev": "node scripts/build-faq.mjs",
     "build": "vite build",
+    "prebuild": "node scripts/build-faq.mjs",
     "preview": "vite preview",
-    "verify": "node scripts/verify-engine.mjs && node scripts/verify-themes.mjs && node scripts/verify-backup.mjs && node scripts/verify-sw.mjs",
+    "faq": "node scripts/build-faq.mjs",
+    "lint": "eslint .",
+    "verify": "eslint . && node scripts/build-faq.mjs --check && node scripts/verify-engine.mjs && node scripts/verify-themes.mjs && node scripts/verify-backup.mjs && node scripts/verify-sw.mjs",
     "verify:engine": "node scripts/verify-engine.mjs",
     "verify:themes": "node scripts/verify-themes.mjs",
     "verify:backup": "node scripts/verify-backup.mjs",
@@ -20,6 +24,10 @@
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^5.2.0",
+    "eslint": "^9.39.5",
+    "eslint-plugin-react": "^7.37.5",
+    "eslint-plugin-react-hooks": "^5.2.0",
+    "globals": "^17.12.0",
     "vite": "^7.3.6"
   }
 }
