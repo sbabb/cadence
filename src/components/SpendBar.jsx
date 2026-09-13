@@ -5,32 +5,30 @@ import { MOTION, prefersReducedMotion } from '../utils/motion.js'
 import useAnimatedValue from '../hooks/useAnimatedValue.js'
 import useThemeColors from '../hooks/useThemeColors.js'
 
-// Where the $0 boundary sits once the day has gone over, as a fraction of the
-// track's width.
+// Once the day has gone over, the WHOLE TRACK is what you spent today, divided
+// at zero: the red part to the left of the mark is the money that was not
+// budgeted, the outlined part to the right is the money that was. Nothing else
+// is on the track, because there is nothing else true to put there.
 //
-// Under budget the track is one continuous thing: a fill anchored left that
-// retreats as you spend, hitting zero width at the left edge exactly when the
-// money runs out. Past that point it stops being a quantity and becomes a
-// NUMBER LINE. The mark is zero; the quarter of the track to its right is the
-// day's limit, drawn as an empty outline - "the bar was $50, and it is gone";
-// everything to the left of the mark is the hole, and the overage fills it
-// LEFTWARDS from the mark.
+// Spending more does not fill empty room - there is none - it moves the
+// boundary. The red grows and pushes the zero mark rightwards, and the day's
+// limit, still drawn to true scale beside it, is squeezed into a smaller and
+// smaller share of what you actually spent. That squeeze IS the message.
 //
-// The direction reversal is the entire signal. The old behaviour refilled the
-// same track left-to-right in red, which looks identical to progress - the
-// bar got fuller the worse things got. Growing the other way off a fixed
-// landmark cannot be mistaken for that.
+// The version before this one anchored zero at a fixed 75% and grew the red
+// leftwards into a tinted reservoir. Two things were wrong with it. The
+// reservoir was an arbitrary 3x-the-limit capacity presented as if it were
+// part of the data, and until you filled it there was a visible gap of unused
+// track between the fill and the left edge - which reads as room still to
+// spend. A bar about overspending should never have a "still available" region
+// in it, at any width.
 //
-// 0.75 is a scale choice as much as a layout one: with the limit occupying the
-// remaining quarter at matching dollars-per-pixel, the overage bar reaches the
-// track's left edge at exactly 3x the day's limit. Deeper than that and it
-// stays full and the figure carries the magnitude, which is the same bargain
-// the ring and the old overage bar both struck.
-const ZERO_MARK = 0.75
-
-// The day's limit, in track fractions. Also the scale: this much width is
-// worth exactly one daily limit, on BOTH sides of the mark.
-const LIMIT_LANE = 1 - ZERO_MARK
+// The only clamp left is a rendering floor: past this point the limit's share
+// would round away to nothing and the mark would sit on the track's right edge
+// with no lane left to mark the edge OF. It corresponds to being roughly 15x
+// over, which is far enough out that the bar has long since stopped being the
+// thing carrying the information - the figure is.
+const MAX_ZERO_MARK = 0.94
 
 // The mote field behind the figure. Ambient texture, nothing more.
 //
@@ -183,14 +181,24 @@ export default function SpendBar({
   const zeroLimit = safeLimit === 0
   const spentFraction = zeroLimit ? (spent > 0 ? 2 : 1) : spent / safeLimit
 
+  // The overage's share of everything spent today - which is exactly where zero
+  // falls once the track is read as "what you spent". A $50 limit blown by $35
+  // puts it at 35/85, a little over 40% of the way across; blown by $150 it
+  // lands at 150/200, the three-to-one split the bar was first drawn from.
+  //
+  // A limit of $0 has no budgeted share at all, so the mark goes to the far end
+  // and the lane disappears rather than being clamped to a sliver that would
+  // misstate it.
+  //
   // One animated width serves both layouts, and the handover between them is
   // invisible for a reason worth keeping: at the instant of crossing, the
-  // under-budget fill is zero wide at the left edge and the overage bar is
-  // zero wide at the mark. Nothing jumps, because there is nothing there to
-  // jump - only the zero mark and the empty limit lane arrive.
+  // under-budget fill is zero wide at the left edge and so is the overage. The
+  // mark starts life at the left edge too, exactly where the emptied fill left
+  // off. Nothing jumps - the outlined lane simply arrives across the full
+  // track, and the mark starts pushing into it.
   const overageFraction = zeroLimit
-    ? ZERO_MARK
-    : Math.min(ZERO_MARK, (overage / safeLimit) * LIMIT_LANE)
+    ? 1
+    : Math.min(MAX_ZERO_MARK, overage / (safeLimit + overage))
 
   const fillFraction = isOver ? overageFraction : Math.max(0, 1 - spentFraction)
 
@@ -274,6 +282,14 @@ export default function SpendBar({
 
   const displayAmount = Math.round(animatedAmount)
   const widthPercent = Math.max(0, Math.min(1, animatedFill)) * 100
+  const lanePercent = 100 - widthPercent
+
+  // The "0" caption rides the mark, but it is centred on its own position, so
+  // at a small overage - where the mark is still close to the left edge - it
+  // would hang off the side of the track. Held far enough in to stay whole;
+  // a pixel or two of disagreement with the mark matters far less than half a
+  // character disappearing.
+  const zeroLabelPercent = Math.max(3, Math.min(97, widthPercent))
 
   const shellClasses = ['bar-shell', pulsing ? 'bar-pulsing' : ''].filter(Boolean).join(' ')
 
@@ -332,23 +348,27 @@ export default function SpendBar({
           </div>
         </div>
 
-        {/* Two layouts, one track. See the note on ZERO_MARK for why going
-            over swaps the geometry rather than just recolouring it. */}
+        {/* Two layouts, one track. See the note on MAX_ZERO_MARK for what the
+            track means once the day is over.
+         *
+         * All three pieces are driven off the SAME animated width, so the
+         * mark, the end of the red and the start of the lane cannot drift
+         * apart by a frame - they are three views of one number. */}
         <div className={`bar-track ${isOver ? 'bar-track-over' : ''}`}>
           {isOver ? (
             <>
-              <div className="bar-limit-lane" style={{ width: `${LIMIT_LANE * 100}%` }} />
               <div
-                className="bar-fill bar-fill-over"
-                style={{
-                  width: `${widthPercent}%`,
-                  // Pinned by its RIGHT edge to the mark, so the width grows
-                  // leftwards - the whole point of the layout.
-                  right: `${LIMIT_LANE * 100}%`,
-                  background: fillColor
-                }}
+                className="bar-fill"
+                style={{ width: `${widthPercent}%`, background: fillColor }}
               />
-              <div className="bar-zero-mark" style={{ left: `${ZERO_MARK * 100}%` }} />
+              {/* What the day was actually worth, at the same scale, taking up
+                  whatever share of today's spending it still accounts for.
+                  Dropped entirely when that share rounds to nothing, rather
+                  than left as a 2px stub of its own borders. */}
+              {lanePercent > 0.5 && (
+                <div className="bar-limit-lane" style={{ left: `${widthPercent}%` }} />
+              )}
+              <div className="bar-zero-mark" style={{ left: `${widthPercent}%` }} />
             </>
           ) : (
             <div
@@ -369,7 +389,7 @@ export default function SpendBar({
          * what its width IS - it just no longer announces it. */}
         {isOver && (
           <div className="bar-scale" aria-hidden="true">
-            <span className="bar-scale-zero" style={{ left: `${ZERO_MARK * 100}%` }}>
+            <span className="bar-scale-zero" style={{ left: `${zeroLabelPercent}%` }}>
               0
             </span>
           </div>

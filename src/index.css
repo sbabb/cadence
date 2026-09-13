@@ -588,8 +588,8 @@ input, button, select, textarea {
 }
 
 /* Going over swaps the track's geometry rather than just recolouring it - see
-   the ZERO_MARK note in SpendBar.jsx. The border carries the state; the track
-   itself keeps its ordinary ground on both sides of the mark.
+   the MAX_ZERO_MARK note in SpendBar.jsx. The border carries the state; the
+   track itself keeps its ordinary ground behind both sides of the mark.
  *
  * Everything left of zero used to be tinted, on the theory that a small
  * overspend needed the territory marked as well as the sliver of fill in it.
@@ -606,10 +606,15 @@ input, button, select, textarea {
   overflow: visible;
 }
 
-/* The day's limit, held on screen as an empty outline once it is spent: the
-   bar WAS this wide. Green because that is the colour it was while there was
-   still something in it - this is a memory of the budget, not a warning about
-   it, and the warning is already the whole left-hand side. */
+/* The day's limit, held on screen as an empty outline once it is spent, drawn
+   to the same scale as the red beside it. Its left edge is the zero mark, its
+   right edge is the end of the track, so it takes up exactly the share of
+   today's spending that was actually budgeted - and shrinks as the overage
+   pushes the mark rightwards.
+ *
+ * Green because that is the colour it was while there was still something in
+ * it: a memory of the budget, not a warning about it, and the warning is
+ * already the whole left-hand side. */
 .bar-limit-lane {
   position: absolute;
   top: 0;
@@ -693,24 +698,6 @@ input, button, select, textarea {
 @keyframes bar-sheen {
   from { background-position: -60% 0; }
   to { background-position: 160% 0; }
-}
-
-/* Same fill, different anchor: pinned by its RIGHT edge to the zero mark so
-   its width grows leftwards, which is the entire point of the over-budget
-   layout.
- *
- * Compound selector, and placed after .bar-fill rather than before it, for the
- * same reason .bar-fill.bar-breathing is: a bare .bar-fill-over has identical
- * specificity to .bar-fill, so whichever comes LAST in the file wins. It used
- * to come first, .bar-fill's `position: relative` and `height: 100%` won, and
- * the overage bar dropped back into normal flow anchored to the track's left
- * edge - filling left-to-right, the exact behaviour this layout exists to get
- * rid of. */
-.bar-fill.bar-fill-over {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  height: auto;
 }
 
 /* The unlogged state keeps its own, much more visible breathe - that one
