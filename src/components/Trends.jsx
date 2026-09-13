@@ -1,7 +1,6 @@
 import { Fragment, useMemo } from 'react'
 import { reconcilePeriod, summarizePeriod } from '../utils/budgetEngine.js'
 import { formatDisplayDate, formatShortDate, daysBetweenInclusive } from '../utils/dateUtils.js'
-import useBackDismiss from '../hooks/useBackDismiss.js'
 
 // A simple long-term view of every stored period, one bar per period.
 //
@@ -17,9 +16,6 @@ import useBackDismiss from '../hooks/useBackDismiss.js'
 // even when a bar is clipped). Deliberately just a timeline: no
 // interactivity, no filtering, per the brief.
 export default function Trends({ periods, today, onJumpToPeriod, onBack }) {
-  // Back closes Trends and returns to the pager, same as the BACK button.
-  useBackDismiss(onBack)
-
   const referenceYear = Number(today.slice(0, 4))
 
   const bars = useMemo(

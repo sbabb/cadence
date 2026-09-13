@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import useBudgetData from './hooks/useBudgetData'
 import usePersistentStorage from './hooks/usePersistentStorage.js'
+import useBackDismiss from './hooks/useBackDismiss.js'
 import { ThemeColorsContext } from './hooks/useThemeColors.js'
 import { applyTheme, getTheme, rampColorsFor } from './utils/themes.js'
 import { formatDisplayDateWithDay, daysBetweenInclusive, compareDateStr } from './utils/dateUtils.js'
@@ -96,6 +97,25 @@ export default function App() {
   const [showSettings, setShowSettings] = useState(false)
   // Opened from Settings and returns there, so the back stack stays honest.
   const [showFaq, setShowFaq] = useState(false)
+
+  // What the back button closes, outermost first.
+  //
+  // These live here rather than inside the three screens because App renders
+  // exactly ONE of them at a time: opening the FAQ unmounts Settings even
+  // though the user has gone a level deeper and Settings is still open behind
+  // it. A screen that registered on its own mount would therefore drop off
+  // the stack on the way down and add itself back on the way up - pushing a
+  // history entry in response to a back press, which Chrome on Android reads
+  // as back-trapping. It marks that entry skippable, the next back skips past
+  // it to the launch entry, and a standalone PWA at the launch entry closes.
+  //
+  // The flags below are the honest answer to "is this screen open", and they
+  // stay true while something is stacked on top. The call order is the order
+  // back takes them off; the spend sheet and the confirm dialogs register
+  // themselves, since for those being mounted really does mean being open.
+  useBackDismiss(() => setShowTrends(false), showTrends)
+  useBackDismiss(() => setShowSettings(false), showSettings)
+  useBackDismiss(() => setShowFaq(false), showFaq)
 
   // Which period page is currently visible in the swipeable pager. Always
   // snaps back to the newest period whenever one is added (the rightmost

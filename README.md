@@ -113,13 +113,17 @@ not a style guide; every rule in it describes a way the app can misbehave.
   answered with a deploy-window error page. None of those reproduce on a fast
   desk connection, which is the whole reason they are asserted rather than
   tried.
-- `scripts/verify-backstack.mjs` — 18 checks on what the Android back button
+- `scripts/verify-backstack.mjs` — 19 checks on what the Android back button
   does. Every way this fails looks the same from the sofa ("I pressed back"),
-  and the two failure modes are opposites: too few history entries and back
-  throws you out of the app mid-task, too many and it appears to do nothing
-  several times in a row. Both depend on ordering, so the suite models a
-  browser — a real entry list, React unmounting in commits, and a separate
-  microtask and macrotask queue so a history traversal stays asynchronous.
+  and the failure modes are opposites: too few history entries and back throws
+  you out of the app mid-task, too many and it appears to do nothing several
+  times in a row. Both depend on ordering, so the suite models a browser — a
+  real entry list, React unmounting in commits, and a separate microtask and
+  macrotask queue so a history traversal stays asynchronous. The load-bearing
+  one is that **a back press must never push an entry**: Chrome on Android
+  reads that as a site trapping the user, marks the new entry skippable, and
+  the next back skips past it — which in an installed PWA means the app
+  closes. It reads as back quitting one screen too early.
 
 ## Installing it on a phone
 
@@ -271,7 +275,7 @@ src/
     useAnimatedValue.js  rAF interpolation
     useThemeColors.js  the active ramp colours, via context
     useKeyboardInset.js  visualViewport fallback for the on-screen keyboard
-    useBackDismiss.js  registers a screen as closable by the back button
+    useBackDismiss.js  registers a screen or overlay as closable by back
   components/          screens and widgets
 eslint.config.js       the React bugs the suites below cannot see
 scripts/
@@ -280,7 +284,7 @@ scripts/
   verify-themes.mjs    100 colour checks, likewise
   verify-backup.mjs    27 backup-format checks, mostly rejections
   verify-sw.mjs        14 checks on offline, stalled and mid-deploy launches
-  verify-backstack.mjs 18 checks on what the back button closes
+  verify-backstack.mjs 19 checks on what the back button closes
 ```
 
 Everything is a pure recompute: the engine derives the whole period from its

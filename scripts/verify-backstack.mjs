@@ -59,6 +59,7 @@ function createHarness({ initialEntries = [null] } = {}) {
   // why the checks below measure the position rather than the list length.
   const entries = [...initialEntries]
   let index = entries.length - 1
+  let pushes = 0
   let exits = 0
   let onPop = null
 
@@ -67,6 +68,7 @@ function createHarness({ initialEntries = [null] } = {}) {
       return entries[index]
     },
     pushState(state) {
+      pushes += 1
       entries.length = index + 1
       entries.push(state)
       index = entries.length - 1
@@ -151,6 +153,9 @@ function createHarness({ initialEntries = [null] } = {}) {
     },
     get exits() {
       return exits
+    },
+    get pushCount() {
+      return pushes
     }
   }
 }
@@ -210,21 +215,67 @@ await check('back takes off the top layer only', async () => {
   assert.equal(h.exits, 1, 'only the third back leaves')
 })
 
-await check('a screen that replaces another keeps the depth honest', async () => {
-  // Settings -> FAQ. App.jsx renders one screen at a time, so opening the FAQ
-  // unmounts Settings and mounts the FAQ in the SAME commit even though the
-  // user experiences it as going one level deeper. Depth must not drift.
+await check('opening the FAQ from Settings goes deeper, it does not go sideways', async () => {
+  // App renders one screen at a time, so opening the FAQ unmounts Settings -
+  // but the user has gone a level DEEPER and Settings is still open behind
+  // it. This is the case the first version of this file got wrong: it checked
+  // that the depth stayed at 1, which is what the buggy code did, so the
+  // suite agreed with the bug all the way onto a phone.
   const h = createHarness()
   h.show('settings')
   await h.settle()
-  h.show('faq')
+  h.show('settings', 'faq')
   await h.settle()
-  assert.equal(h.entries, 1, 'one screen is open, so one entry')
+  assert.equal(h.position, 2, 'the FAQ sits on top of Settings, so two entries')
+
+  const before = h.pushCount
+  h.pressBack()
+  await h.settle()
+  assert.deepEqual(h.onScreen, ['settings'], 'back returns to Settings')
+  assert.equal(h.position, 1)
+  assert.equal(h.pushCount, before, 'and nothing is pushed to get there')
 
   h.pressBack()
   await h.settle()
-  assert.deepEqual(h.onScreen, [], 'the FAQ closed')
-  assert.equal(h.exits, 0, 'and back did not leave the app')
+  assert.deepEqual(h.onScreen, [], 'and back again reaches the dashboard')
+  assert.equal(h.exits, 0, 'without leaving the app')
+})
+
+await check('no back press ever pushes a history entry', async () => {
+  // The invariant the FAQ bug broke, stated on its own because it is the one
+  // that does not reproduce on a desk. Chrome on Android watches for a page
+  // that pushes an entry when the user presses back - the standard way sites
+  // trap people - and marks that entry skippable. The next back then skips
+  // past it, and in an installed PWA the entry it skips to is the launch
+  // entry, so the app closes. It looks like back randomly quitting the app
+  // one screen too early, which is exactly how it was reported.
+  const flows = [
+    ['settings'],
+    ['trends'],
+    ['sheet'],
+    ['settings', 'faq'],
+    ['settings', 'confirm'],
+    ['settings', 'faq', 'confirm']
+  ]
+  for (const flow of flows) {
+    const h = createHarness()
+    for (let n = 1; n <= flow.length; n += 1) {
+      h.show(...flow.slice(0, n))
+      await h.settle()
+    }
+    for (let n = flow.length; n > 0; n -= 1) {
+      const before = h.pushCount
+      h.pressBack()
+      await h.settle()
+      assert.equal(
+        h.pushCount,
+        before,
+        `${flow.join(' -> ')}: back at depth ${n} pushed an entry`
+      )
+    }
+    assert.deepEqual(h.onScreen, [], `${flow.join(' -> ')}: did not unwind cleanly`)
+    assert.equal(h.exits, 0, `${flow.join(' -> ')}: left the app early`)
+  }
 })
 
 // --- closing from inside the app -------------------------------------------
@@ -444,33 +495,61 @@ await check('history is moved after the commit settles, never during it', async 
 
 // --- and that anything dismissible is actually plugged in ------------------
 
-await check('every screen with a way out registers for the back button', async () => {
+await check('everything with a way out is registered, by whichever owns the fact', async () => {
   // The checks above prove the machine works. This one proves things are
-  // connected to it, which is the failure that would otherwise reach a phone
-  // silently: the next dialog anyone adds looks completely normal, behaves
-  // correctly to every tap, and quietly throws the user out of the app when
-  // they swipe back.
+  // plugged into it - the failure that otherwise reaches a phone in silence,
+  // because an unregistered dialog looks completely normal and behaves
+  // correctly to every tap right up until somebody swipes back.
   //
-  // The rule is the prop name. A component taking `onBack` or `onCancel` is
-  // by definition a layer with something underneath it, so back belongs to
-  // it. StorageWarning is the deliberate exception and takes `onDismiss`
-  // instead: it is a banner sitting inside the current screen rather than a
-  // layer over it, so there is nothing for back to uncover.
-  const missing = []
+  // The prop name says which kind a component is, and the two kinds register
+  // in different places for the reason set out in useBackDismiss.js:
+  //
+  //   onCancel -> an OVERLAY, rendered on top of whatever is showing. It
+  //               unmounts when it closes, so mounted means open and it
+  //               registers itself.
+  //   onBack   -> a SCREEN, one of the ones App swaps between. App unmounts
+  //               it to show another screen even when it is still open
+  //               underneath, so it must NOT register itself; App holds the
+  //               flag that knows better, and registers it there.
+  //
+  // StorageWarning is neither and takes onDismiss: a banner inside the
+  // current screen rather than a layer over it, so back has nothing to
+  // uncover.
+  const problems = []
+  const screens = []
   for (const file of readdirSync(COMPONENTS).filter((f) => f.endsWith('.jsx'))) {
     const src = readFileSync(join(COMPONENTS, file), 'utf8')
     const signature = src.match(/^export default function (\w+)\(([\s\S]*?)\)\s*\{/m)
     if (!signature) continue
     const [, name, props] = signature
-    const dismiss = ['onBack', 'onCancel'].find((p) => new RegExp(`\\b${p}\\b`).test(props))
-    if (!dismiss) continue
-    const call = src.match(/useBackDismiss\((\w+)\)/)
-    if (!call) missing.push(`${name} takes ${dismiss} but never calls useBackDismiss`)
-    else if (call[1] !== dismiss) {
-      missing.push(`${name} registers ${call[1]} for the back button, not its ${dismiss}`)
+    const has = (p) => new RegExp(`\\b${p}\\b`).test(props)
+    const call = src.match(/useBackDismiss\((\w+)/)
+
+    if (has('onCancel')) {
+      if (!call) problems.push(`${name} is an overlay but never calls useBackDismiss`)
+      else if (call[1] !== 'onCancel') {
+        problems.push(`${name} registers ${call[1]} for the back button, not its onCancel`)
+      }
+    } else if (has('onBack')) {
+      screens.push(name)
+      if (call) {
+        problems.push(
+          `${name} is a screen and registers itself; App must do it, or back ` +
+          `will push an entry on the way out of whatever is stacked on it`
+        )
+      }
     }
   }
-  assert.deepEqual(missing, [], `\n  ${missing.join('\n  ')}`)
+
+  const app = readFileSync(join(COMPONENTS, '..', 'App.jsx'), 'utf8')
+  const registered = (app.match(/useBackDismiss\(/g) || []).length
+  if (registered !== screens.length) {
+    problems.push(
+      `App registers ${registered} screens but ${screens.length} exist ` +
+      `(${screens.sort().join(', ')})`
+    )
+  }
+  assert.deepEqual(problems, [], `\n  ${problems.join('\n  ')}`)
 })
 
 console.log(`\n${passed}/${passed + failed} back button checks passed`)
