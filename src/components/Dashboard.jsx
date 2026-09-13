@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { formatDisplayDate, formatDisplayDateWithDay, formatTimeRemaining } from '../utils/dateUtils.js'
 import { formatMoney } from '../utils/format.js'
-import { projectNextDayLimit } from '../utils/budgetEngine.js'
 import DayList from './DayList.jsx'
 import SpendBar from './SpendBar.jsx'
 
@@ -63,7 +62,21 @@ export default function Dashboard({
   // shows the period's steady baseline target instead, and the actual
   // rolled-over total gets its own explicit line so neither number is lost.
   const isLastDay = Boolean(todayInfo) && today === period.endDate
-  const displayedDailyLimit = isLastDay ? todayInfo.baselineDailyLimit : todayLimit
+
+  // Once today's spend has reached today's limit there is nothing left to
+  // spend today, and the box says $0 rather than going on advertising a limit
+  // that has already been used up. Showing "$50" above a bar reading "$150
+  // over" was the dashboard stating the allowance and the overspend as if they
+  // were both still live; only one of them is.
+  //
+  // The full figure is not lost - the LIMIT column of today's row in the day
+  // list still holds the amount today STARTED with, which is what the day gets
+  // judged against. This box is the live answer to "what may I still spend",
+  // and that answer is nothing.
+  const todaySpent = todayInfo && todayInfo.logged ? todayInfo.amount : 0
+  const isSpentOut = todayLimit !== null && todaySpent > 0 && todaySpent >= todayLimit
+
+  const displayedDailyLimit = isSpentOut ? 0 : isLastDay ? todayInfo.baselineDailyLimit : todayLimit
 
   // Whether the limit actually moved since yesterday. It's designed to hold
   // steady - a few dollars of daily variance spread over the remaining days
@@ -71,10 +84,10 @@ export default function Dashboard({
   // so the days it DOES move are marked. Suppressed on the last day, where the
   // box shows a static baseline that has nothing to compare against.
   const limitDelta = useMemo(() => {
-    if (isLastDay || previousDayLimit === null || todayLimit === null) return null
+    if (isLastDay || isSpentOut || previousDayLimit === null || todayLimit === null) return null
     const delta = todayLimit - previousDayLimit
     return delta === 0 ? null : delta
-  }, [isLastDay, previousDayLimit, todayLimit])
+  }, [isLastDay, isSpentOut, previousDayLimit, todayLimit])
 
   const isOverSelected = selectedLimit > 0 && selectedSpent > selectedLimit
 
@@ -85,26 +98,17 @@ export default function Dashboard({
   // only when there's actually a following day left in the period.
   const tomorrowLimit = useMemo(() => {
     if (!isTodaySelected || !isOverSelected || !todayInfo || daysRemaining <= 1) return null
-    const totalDays = schedule.length
-    const loggedDays = schedule.filter((row) => row.logged).length + (selectedLogged ? 0 : 1)
-    const remainingAfterToday = todayInfo.remainingBefore - selectedSpent
-    const next = projectNextDayLimit(remainingAfterToday, totalDays, loggedDays)
+    // The engine already computes this - it is the same number the day list
+    // now prints in the LIMIT column of every remaining day, and the two must
+    // agree or the sentence contradicts the table directly beneath it.
+    const next = todayInfo.forwardDailyLimit
     // Going over doesn't always visibly cost you tomorrow: the divisor shrinks
     // by a day at the same time the budget does, so a modest overspend against
     // a large remaining budget can land on the same whole-dollar figure.
     // Saying "drops to $7" while today's limit is also $7 would be worse than
     // saying nothing, so the line only appears when there's a real reduction.
     return next < selectedLimit ? next : null
-  }, [
-    isTodaySelected,
-    isOverSelected,
-    todayInfo,
-    daysRemaining,
-    schedule,
-    selectedLogged,
-    selectedSpent,
-    selectedLimit
-  ])
+  }, [isTodaySelected, isOverSelected, todayInfo, daysRemaining, selectedLimit])
 
   // Looking at a day and editing it are separate now. Selecting moves the bar;
   // the SPENT figure opens the sheet. Editing still selects first, so the bar

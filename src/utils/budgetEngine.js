@@ -162,6 +162,7 @@ export function reconcilePeriod(period, todayStr) {
     const daysRemaining = Math.max(1, totalDays - loggedDaysSoFar)
     const dailyLimit = dailyLimitFor(runningBudget, daysRemaining)
     const todayEntry = sortedEntries.find((e) => e.date === todayStr)
+    let loggedDaysTotal = loggedDaysSoFar
 
     if (todayEntry) {
       const remainingAfter = runningBudget - todayEntry.amount
@@ -180,6 +181,7 @@ export function reconcilePeriod(period, todayStr) {
         remainingAfter
       }
       runningBudget = remainingAfter
+      loggedDaysTotal += 1
     } else {
       todayInfo = {
         logged: false,
@@ -190,6 +192,18 @@ export function reconcilePeriod(period, todayStr) {
         remainingAfter: null
       }
     }
+
+    // What every day AFTER today is worth, given where the budget stands once
+    // today's spend is accounted for. `dailyLimit` above is deliberately the
+    // figure that applied when today STARTED - that is the number today is
+    // judged against, and it must not move underneath the user mid-day - but
+    // it is the wrong number to print against Thursday once Tuesday has been
+    // blown. An overspend does not wait until midnight to cost you: it costs
+    // you the moment it is logged, and the days that follow should say so.
+    //
+    // Identical to `dailyLimit` until today is actually logged (same budget,
+    // same divisor), so nothing changes on a day you have not touched yet.
+    todayInfo.forwardDailyLimit = projectNextDayLimit(runningBudget, totalDays, loggedDaysTotal)
   }
 
   return {
@@ -242,9 +256,13 @@ export function summarizePeriod(period, reconciled) {
 // - Any other day with no logged entry - a genuinely untracked past day,
 //   or a day still in the future - is `isUnknown: true`. Its spend is
 //   unknowable, but its Limit column still shows a real number: the
-//   CURRENT live daily limit (the same number "Daily Limit Today" shows),
-//   as a reference point for what that day's target is/was, rather than
-//   leaving the column blank.
+//   live daily limit - but WHICH live limit depends on which side of today
+//   the row falls on. A future day gets `forwardDailyLimit`: what a day is
+//   worth once today's spend is accounted for, so blowing today's limit
+//   visibly shrinks the rest of the period the moment it is logged rather
+//   than at midnight. An untracked PAST day gets today's own `dailyLimit`,
+//   which is the closest thing to the target that applied back then - a day
+//   that has already gone cannot be repriced by what happened after it.
 //
 // `isPast` / `isToday` / `isFuture` are mutually exclusive and cover every
 // row. The UI uses `isPast` to decide which rows are editable (only past
@@ -253,10 +271,12 @@ export function summarizePeriod(period, reconciled) {
 export function buildPeriodSchedule(period, todayStr, reconciled) {
   const { startDate, endDate } = period
   const entryByDate = new Map(reconciled.entries.map((e) => [e.date, e]))
-  // Fallback Limit for any day with no entry of its own: the current live
-  // daily limit. null only in the (practically unreachable from the
-  // dashboard) case where the period has already ended.
+  // Fallback Limits for a day with no entry of its own - see the note above
+  // for why forward and backward get different numbers. Both are null only in
+  // the (practically unreachable from the dashboard) case where the period has
+  // already ended.
   const fallbackLimit = reconciled.todayInfo ? reconciled.todayInfo.dailyLimit : null
+  const forwardLimit = reconciled.todayInfo ? reconciled.todayInfo.forwardDailyLimit : null
 
   const rows = []
   let cursor = startDate
@@ -293,7 +313,7 @@ export function buildPeriodSchedule(period, todayStr, reconciled) {
       rows.push({
         date: cursor,
         amount: null,
-        dailyLimit: fallbackLimit,
+        dailyLimit: isFuture ? forwardLimit : fallbackLimit,
         isToday,
         isPast,
         isFuture,

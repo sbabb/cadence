@@ -355,6 +355,87 @@ scenario('every schedule row has a non-null dailyLimit, including untracked past
   assert.equal(schedule.find((row) => row.date === '2026-08-10').dailyLimit, 36) // future
 })
 
+// --- FEATURE: an overspend costs you the REST OF THE PERIOD immediately, not
+// at midnight. Today's own limit is frozen at whatever applied when the day
+// started (that is the number the day gets judged against, and it must not
+// move underneath the user mid-day), but every day AFTER today reprices the
+// moment the spend is logged. ---
+scenario('logging today reprices future days straight away, while today keeps the limit it started with', () => {
+  const period = {
+    startDate: '2026-08-01',
+    endDate: '2026-08-10', // 10 days, $500 -> $50/day
+    initialAmount: 500,
+    entries: []
+  }
+
+  // Day 1, nothing logged yet: forward and today agree, so nothing about the
+  // day list changes on a day you have not touched.
+  const untouched = reconcilePeriod(period, '2026-08-01')
+  assert.equal(untouched.todayInfo.dailyLimit, 50)
+  assert.equal(untouched.todayInfo.forwardDailyLimit, 50)
+
+  // Now blow it: $200 on a $50 day.
+  const over = reconcilePeriod({ ...period, entries: [{ date: '2026-08-01', amount: 200 }] }, '2026-08-01')
+  assert.equal(over.todayInfo.dailyLimit, 50) // today is still judged against $50
+  assert.equal(over.todayInfo.remainingAfter, 300)
+  // ...but the other 9 days are now worth ceil(300/9) = 33.3 -> 34 each.
+  assert.equal(over.todayInfo.forwardDailyLimit, 34)
+
+  const schedule = buildPeriodSchedule({ ...period, entries: [{ date: '2026-08-01', amount: 200 }] }, '2026-08-01', over)
+  // Today's row holds the amount the day STARTED with - the dashboard's
+  // "daily limit bar in the date rows" reference.
+  assert.equal(schedule.find((row) => row.date === '2026-08-01').dailyLimit, 50)
+  // Every following day reflects what is actually left.
+  assert.equal(schedule.find((row) => row.date === '2026-08-02').dailyLimit, 34)
+  assert.equal(schedule.find((row) => row.date === '2026-08-10').dailyLimit, 34)
+})
+
+scenario('underspending today lifts the remaining days by the same mechanism', () => {
+  const period = {
+    startDate: '2026-08-01',
+    endDate: '2026-08-10',
+    initialAmount: 500,
+    entries: [{ date: '2026-08-01', amount: 10 }]
+  }
+  const r = reconcilePeriod(period, '2026-08-01')
+  assert.equal(r.todayInfo.dailyLimit, 50)
+  assert.equal(r.todayInfo.forwardDailyLimit, 55) // ceil(490/9) = 54.4 -> 55
+  const schedule = buildPeriodSchedule(period, '2026-08-01', r)
+  assert.equal(schedule.find((row) => row.date === '2026-08-05').dailyLimit, 55)
+})
+
+scenario('an untracked PAST day is not repriced by what happened after it', () => {
+  const period = {
+    startDate: '2026-08-01',
+    endDate: '2026-08-10',
+    initialAmount: 500,
+    // Day 1 never logged; day 2 is today and has been blown.
+    entries: [{ date: '2026-08-02', amount: 300 }]
+  }
+  const r = reconcilePeriod(period, '2026-08-02')
+  const schedule = buildPeriodSchedule(period, '2026-08-02', r)
+  // The gone day keeps today's live figure as its reference...
+  assert.equal(schedule.find((row) => row.date === '2026-08-01').dailyLimit, 50)
+  assert.equal(schedule.find((row) => row.date === '2026-08-02').dailyLimit, 50)
+  // ...while the days still to come carry the cost: ceil(200/9) = 22.2 -> 23.
+  assert.equal(r.todayInfo.forwardDailyLimit, 23)
+  assert.equal(schedule.find((row) => row.date === '2026-08-03').dailyLimit, 23)
+})
+
+scenario('forwardDailyLimit is floored at zero like every other limit', () => {
+  const period = {
+    startDate: '2026-08-01',
+    endDate: '2026-08-10',
+    initialAmount: 100,
+    entries: [{ date: '2026-08-01', amount: 900 }]
+  }
+  const r = reconcilePeriod(period, '2026-08-01')
+  assert.equal(r.todayInfo.remainingAfter, -800)
+  assert.equal(r.todayInfo.forwardDailyLimit, 0)
+  const schedule = buildPeriodSchedule(period, '2026-08-01', r)
+  assert.ok(schedule.every((row) => row.dailyLimit >= 0))
+})
+
 // --- FEATURE: editing a PAST day's logged amount recalculates the budget and
 // every dailyLimit from that day forward, including today's live limit.
 // This falls out for free from reconcilePeriod always recomputing the

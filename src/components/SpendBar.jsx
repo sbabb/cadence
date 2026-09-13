@@ -5,10 +5,32 @@ import { MOTION, prefersReducedMotion } from '../utils/motion.js'
 import useAnimatedValue from '../hooks/useAnimatedValue.js'
 import useThemeColors from '../hooks/useThemeColors.js'
 
-// How far past the limit the overage bar keeps growing before it gives up and
-// stays full. Being 100% over fills it completely; beyond that the figure
-// carries the magnitude, the same rule the ring used.
-const OVERAGE_CAP = 1
+// Where the $0 boundary sits once the day has gone over, as a fraction of the
+// track's width.
+//
+// Under budget the track is one continuous thing: a fill anchored left that
+// retreats as you spend, hitting zero width at the left edge exactly when the
+// money runs out. Past that point it stops being a quantity and becomes a
+// NUMBER LINE. The mark is zero; the quarter of the track to its right is the
+// day's limit, drawn as an empty outline - "the bar was $50, and it is gone";
+// everything to the left of the mark is the hole, and the overage fills it
+// LEFTWARDS from the mark.
+//
+// The direction reversal is the entire signal. The old behaviour refilled the
+// same track left-to-right in red, which looks identical to progress - the
+// bar got fuller the worse things got. Growing the other way off a fixed
+// landmark cannot be mistaken for that.
+//
+// 0.75 is a scale choice as much as a layout one: with the limit occupying the
+// remaining quarter at matching dollars-per-pixel, the overage bar reaches the
+// track's left edge at exactly 3x the day's limit. Deeper than that and it
+// stays full and the figure carries the magnitude, which is the same bargain
+// the ring and the old overage bar both struck.
+const ZERO_MARK = 0.75
+
+// The day's limit, in track fractions. Also the scale: this much width is
+// worth exactly one daily limit, on BOTH sides of the mark.
+const LIMIT_LANE = 1 - ZERO_MARK
 
 // The mote field behind the figure. Ambient texture, nothing more.
 //
@@ -161,11 +183,16 @@ export default function SpendBar({
   const zeroLimit = safeLimit === 0
   const spentFraction = zeroLimit ? (spent > 0 ? 2 : 1) : spent / safeLimit
 
-  const fillFraction = isOver
-    ? zeroLimit
-      ? OVERAGE_CAP
-      : Math.min(OVERAGE_CAP, overage / safeLimit)
-    : Math.max(0, 1 - spentFraction)
+  // One animated width serves both layouts, and the handover between them is
+  // invisible for a reason worth keeping: at the instant of crossing, the
+  // under-budget fill is zero wide at the left edge and the overage bar is
+  // zero wide at the mark. Nothing jumps, because there is nothing there to
+  // jump - only the zero mark and the empty limit lane arrive.
+  const overageFraction = zeroLimit
+    ? ZERO_MARK
+    : Math.min(ZERO_MARK, (overage / safeLimit) * LIMIT_LANE)
+
+  const fillFraction = isOver ? overageFraction : Math.max(0, 1 - spentFraction)
 
   // ---- entry sequencing -------------------------------------------------
   const [phase, setPhase] = useState('mount')
@@ -253,7 +280,7 @@ export default function SpendBar({
   const statusWord = isOver ? 'over' : 'remaining'
   const spokenDay = dateLabel || 'today'
   const ariaLabel = isOver
-    ? `${formatMoney(overage)} over the limit for ${spokenDay}. Tap to log spend.`
+    ? `${formatMoney(overage)} over the ${formatMoney(safeLimit)} limit for ${spokenDay}. Tap to log spend.`
     : `${formatMoney(remaining)} remaining for ${spokenDay}. Tap to log spend.`
 
   return (
@@ -305,14 +332,49 @@ export default function SpendBar({
           </div>
         </div>
 
-        {/* Tinting the whole track when over means the state is unmistakable
-            even at a tiny overage, where the fill itself is only a sliver. */}
+        {/* Two layouts, one track. See the note on ZERO_MARK for why going
+            over swaps the geometry rather than just recolouring it. */}
         <div className={`bar-track ${isOver ? 'bar-track-over' : ''}`}>
-          <div
-            className={`bar-fill ${breathing ? 'bar-breathing' : ''}`}
-            style={{ width: `${widthPercent}%`, background: fillColor }}
-          />
+          {isOver ? (
+            <>
+              {/* The overdraft zone is tinted along its whole length, not just
+                  where the fill has reached, so a $5 overspend still reads as
+                  "you are in this territory now" rather than as a stray sliver
+                  floating in an empty track. */}
+              <div className="bar-over-zone" style={{ right: `${LIMIT_LANE * 100}%` }} />
+              <div className="bar-limit-lane" style={{ width: `${LIMIT_LANE * 100}%` }} />
+              <div
+                className="bar-fill bar-fill-over"
+                style={{
+                  width: `${widthPercent}%`,
+                  // Pinned by its RIGHT edge to the mark, so the width grows
+                  // leftwards - the whole point of the layout.
+                  right: `${LIMIT_LANE * 100}%`,
+                  background: fillColor
+                }}
+              />
+              <div className="bar-zero-mark" style={{ left: `${ZERO_MARK * 100}%` }} />
+            </>
+          ) : (
+            <div
+              className={`bar-fill ${breathing ? 'bar-breathing' : ''}`}
+              style={{ width: `${widthPercent}%`, background: fillColor }}
+            />
+          )}
         </div>
+
+        {/* The two figures the split track is drawn against. The big red
+            number says how deep the hole is; these say where zero was and what
+            the day was worth - which is the one number the stat box above
+            deliberately stops showing once the day is spent out. */}
+        {isOver && (
+          <div className="bar-scale" aria-hidden="true">
+            <span className="bar-scale-zero" style={{ left: `${ZERO_MARK * 100}%` }}>
+              0
+            </span>
+            <span className="bar-scale-limit">{formatMoney(safeLimit)}</span>
+          </div>
+        )}
 
         {!logged && <div className="bar-hint">tap to log</div>}
       </button>

@@ -505,6 +505,7 @@ input, button, select, textarea {
  * into a ragged column. Monospaced families are already tabular and ignore it.
  */
 .bar-figure,
+.bar-scale,
 .stat-value,
 .stat-delta,
 .day-row-date,
@@ -553,11 +554,94 @@ input, button, select, textarea {
   transition: background 240ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-/* Tinting the track makes the over-budget state unmistakable even when the
-   overage itself is only a sliver of fill. */
+/* Going over swaps the track's geometry rather than just recolouring it - see
+   the ZERO_MARK note in SpendBar.jsx. The tint moves off the track as a whole
+   and onto the overdraft zone specifically: the quarter to the right of the
+   mark is a reference lane showing what the day was worth, not territory you
+   are standing in, and washing it red would say the opposite.
+
+   `overflow: visible` is what lets the zero mark overhang the track's top and
+   bottom edges. Nothing else in here can escape the track's bounds - the
+   overage width is capped at the mark by construction. */
 .bar-track-over {
-  background: var(--track-over);
+  background: transparent;
   border-color: var(--red);
+  overflow: visible;
+}
+
+/* Everything left of zero. Tinted along its whole length rather than only
+   where the fill has reached, so a $5 overspend reads as "you are in this
+   territory now" instead of as a stray sliver adrift in an empty track. */
+.bar-over-zone {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  background: var(--track-over);
+}
+
+/* The day's limit, held on screen as an empty outline once it is spent: the
+   bar WAS this wide. Green because that is the colour it was while there was
+   still something in it - this is a memory of the budget, not a warning about
+   it, and the warning is already the whole left-hand side. */
+.bar-limit-lane {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 0;
+  border: 1px solid var(--green);
+  opacity: 0.55;
+}
+
+/* Zero. Amber because it is neither of the two states it divides, and because
+   it is the one thing on this track that does not move. Overhangs the track
+   top and bottom so it reads as a marking laid ACROSS the bar rather than as
+   another segment of it. */
+.bar-zero-mark {
+  position: absolute;
+  top: -4px;
+  bottom: -4px;
+  width: 2px;
+  margin-left: -1px;
+  background: var(--amber);
+}
+
+/* Same fill, different anchor: pinned by its right edge to the zero mark so
+   its width grows leftwards. Everything else - the colour, the ambient pulse,
+   the sheen - it inherits from .bar-fill unchanged. */
+.bar-fill-over {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  height: auto;
+}
+
+/* The scale's labels: zero beneath the mark, the day's limit beneath the lane
+   it measures. Deliberately quiet - the big figure above is the headline and
+   this is the axis it is read against. The limit figure matters more than it
+   looks, because it is the number the DAILY LIMIT TODAY box stops showing the
+   moment the day is spent out. */
+.bar-scale {
+  position: relative;
+  height: 15px;
+  margin-top: 6px;
+  font-size: 11px;
+  letter-spacing: 0.5px;
+}
+
+.bar-scale-zero {
+  position: absolute;
+  top: 0;
+  transform: translateX(-50%);
+  color: var(--amber);
+}
+
+.bar-scale-limit {
+  position: absolute;
+  top: 0;
+  right: 0;
+  color: var(--green);
+  opacity: 0.8;
 }
 
 /* Width and colour are driven from JavaScript, so there is deliberately no
