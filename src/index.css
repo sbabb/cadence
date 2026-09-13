@@ -44,7 +44,6 @@
   /* The over-budget track tint and the modal scrims. Both used to be literals
      further down the file, which made them the two things a light theme
      couldn't fix. */
-  --track-over: #3a2230;
   --scrim: rgba(13, 14, 20, 0.8);
   --scrim-strong: rgba(13, 14, 20, 0.88);
 
@@ -589,29 +588,22 @@ input, button, select, textarea {
 }
 
 /* Going over swaps the track's geometry rather than just recolouring it - see
-   the ZERO_MARK note in SpendBar.jsx. The tint moves off the track as a whole
-   and onto the overdraft zone specifically: the quarter to the right of the
-   mark is a reference lane showing what the day was worth, not territory you
-   are standing in, and washing it red would say the opposite.
-
-   `overflow: visible` is what lets the zero mark overhang the track's top and
-   bottom edges. Nothing else in here can escape the track's bounds - the
-   overage width is capped at the mark by construction. */
+   the ZERO_MARK note in SpendBar.jsx. The border carries the state; the track
+   itself keeps its ordinary ground on both sides of the mark.
+ *
+ * Everything left of zero used to be tinted, on the theory that a small
+ * overspend needed the territory marked as well as the sliver of fill in it.
+ * What the tint actually drew was the SPACE BETWEEN the overage and the
+ * display's 3x cap - a quantity with no meaning, and one that reads, wrongly,
+ * as an allowance still to be used up. An empty region left of zero should
+ * look exactly like an empty region: unfilled track.
+ *
+ * `overflow: visible` is what lets the zero mark overhang the track's top and
+ * bottom edges. Nothing else in here can escape the track's bounds - the
+ * overage width is capped at the mark by construction. */
 .bar-track-over {
-  background: transparent;
   border-color: var(--red);
   overflow: visible;
-}
-
-/* Everything left of zero. Tinted along its whole length rather than only
-   where the fill has reached, so a $5 overspend reads as "you are in this
-   territory now" instead of as a stray sliver adrift in an empty track. */
-.bar-over-zone {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  left: 0;
-  background: var(--track-over);
 }
 
 /* The day's limit, held on screen as an empty outline once it is spent: the

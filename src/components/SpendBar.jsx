@@ -337,11 +337,6 @@ export default function SpendBar({
         <div className={`bar-track ${isOver ? 'bar-track-over' : ''}`}>
           {isOver ? (
             <>
-              {/* The overdraft zone is tinted along its whole length, not just
-                  where the fill has reached, so a $5 overspend still reads as
-                  "you are in this territory now" rather than as a stray sliver
-                  floating in an empty track. */}
-              <div className="bar-over-zone" style={{ right: `${LIMIT_LANE * 100}%` }} />
               <div className="bar-limit-lane" style={{ width: `${LIMIT_LANE * 100}%` }} />
               <div
                 className="bar-fill bar-fill-over"

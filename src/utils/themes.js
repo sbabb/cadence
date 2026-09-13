@@ -59,7 +59,6 @@ const TOKEN_VARS = {
   cyan: '--cyan',
   purple: '--purple',
   orange: '--orange',
-  trackOver: '--track-over',
   scrim: '--scrim',
   scrimStrong: '--scrim-strong'
 }
@@ -88,7 +87,6 @@ export const THEMES = [
       cyan: '#7dcfff',
       purple: '#bb9af7',
       orange: '#ff9e64',
-      trackOver: '#3a2230',
       scrim: 'rgba(13, 14, 20, 0.80)',
       scrimStrong: 'rgba(13, 14, 20, 0.88)'
     }
@@ -141,7 +139,6 @@ export const THEMES = [
       orange: '#8e3518',
       // The over-budget track: enough pink to read as wrong, pale enough that
       // the deep red fill still stands off it. Stepped down with the ground.
-      trackOver: '#e0c0c6',
       // Dark scrims on a light theme, same reasoning as Latte's - a pale wash
       // over pale content leaves the dialog floating in fog.
       scrim: 'rgba(28, 28, 28, 0.55)',
@@ -177,7 +174,6 @@ export const THEMES = [
       cyan: '#0c8dc0',
       purple: '#8839ef',
       orange: '#e05a0b',
-      trackOver: '#f3d3da',
       // A light scrim over light content would leave the dialog floating in
       // fog, so the scrim stays dark here too - just weaker, because there's
       // less brightness to hold back.

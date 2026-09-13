@@ -181,16 +181,7 @@ for (const theme of THEMES) {
     assert.ok(cb >= 1.3, `border-bright ${t.borderBright} on ${t.bgPanel} is ${ratio(cb)}`)
   })
 
-  // 8. The over-budget track tint has to read as "wrong" without swallowing
-  //    the red fill drawn on top of it.
-  check(`${theme.id}: over-budget track reads against bg and its own fill`, () => {
-    const vsBg = contrast(t.trackOver, t.bg)
-    assert.ok(vsBg >= 1.1, `track-over ${t.trackOver} vs bg ${t.bg} is ${ratio(vsBg)} - invisible`)
-    const vsFill = contrast(t.trackOver, t.redDeep)
-    assert.ok(vsFill >= 1.6, `track-over ${t.trackOver} vs the deep red fill is ${ratio(vsFill)} - the fill disappears into it`)
-  })
-
-  // 9. Walk the ACTUAL ramp this theme produces, at the resolution the bar
+  // 8. Walk the ACTUAL ramp this theme produces, at the resolution the bar
   //    animates through it, and require every colour along the way to stay
   //    legible. This is the check that would catch a theme whose green and
   //    red are both fine but whose OKLCH midpoint dips into something dark.
@@ -209,7 +200,7 @@ for (const theme of THEMES) {
     )
   })
 
-  // 10. The ramp must not reverse direction on the way from green to red. It
+  // 9. The ramp must not reverse direction on the way from green to red. It
   //     goes green -> yellow -> orange -> red by taking the short way round
   //     the hue wheel; a theme whose green sits on the far side would send it
   //     through cyan and blue instead, which is a completely different and
