@@ -83,11 +83,34 @@ export default function Dashboard({
   // rounds away to nothing - but an unchanging number gives no sign it's alive,
   // so the days it DOES move are marked. Suppressed on the last day, where the
   // box shows a static baseline that has nothing to compare against.
+  //
+  // It deliberately survives a spent-out day, even though the figure above it
+  // has gone to $0. The two are answering different questions - $0 is what is
+  // left of today, the delta is what a day is currently worth - and the day a
+  // limit moves is exactly the day you want told about it. Today's row in the
+  // day list still carries the figure the delta is measured against.
   const limitDelta = useMemo(() => {
-    if (isLastDay || isSpentOut || previousDayLimit === null || todayLimit === null) return null
+    if (isLastDay || previousDayLimit === null || todayLimit === null) return null
     const delta = todayLimit - previousDayLimit
     return delta === 0 ? null : delta
-  }, [isLastDay, isSpentOut, previousDayLimit, todayLimit])
+  }, [isLastDay, previousDayLimit, todayLimit])
+
+  // What goes in the third row when there is no delta to put there. The limit
+  // holding steady is the designed-for case, not a missing value, so the slot
+  // says so rather than sitting empty next to two boxes that have something in
+  // theirs.
+  const limitSubNote = isLastDay ? 'usual target' : isSpentOut ? 'spent out' : 'steady'
+
+  // The REMAINING figure states a quantity; this states what the quantity
+  // MEANS, which is the thing you actually want at a glance.
+  const remainingVerdict =
+    currentRemaining === null
+      ? null
+      : currentRemaining < 0
+        ? { word: 'over budget', tone: 'over' }
+        : currentRemaining === 0
+          ? { word: 'on budget', tone: 'even' }
+          : { word: 'under budget', tone: 'under' }
 
   const isOverSelected = selectedLimit > 0 && selectedSpent > selectedLimit
 
@@ -154,18 +177,21 @@ export default function Dashboard({
           <div className="stat-value">
             {isLastDay ? formatTimeRemaining(now) : daysRemaining}
           </div>
+          <div className="stat-sub">in period</div>
         </div>
         <div className="stat-box">
           <div className="stat-label">DAILY LIMIT TODAY</div>
           <div className="stat-value">
             {formatMoney(displayedDailyLimit)}
           </div>
-          {limitDelta !== null && (
+          {limitDelta !== null ? (
             <div className={`stat-delta ${limitDelta > 0 ? 'stat-delta-up' : 'stat-delta-down'}`}>
               <span className="stat-delta-arrow">{limitDelta > 0 ? '▲' : '▼'}</span>
               {formatMoney(Math.abs(limitDelta))}
               <span className="stat-delta-note">vs yesterday</span>
             </div>
+          ) : (
+            <div className="stat-sub">{limitSubNote}</div>
           )}
         </div>
         {isLastDay ? (
@@ -179,6 +205,11 @@ export default function Dashboard({
             <div className={`stat-value ${currentRemaining < 0 ? 'negative' : ''}`}>
               {formatMoney(currentRemaining)}
             </div>
+            {remainingVerdict && (
+              <div className={`stat-sub stat-sub-${remainingVerdict.tone}`}>
+                {remainingVerdict.word}
+              </div>
+            )}
           </button>
         ) : (
           <div className="stat-box">
@@ -186,6 +217,11 @@ export default function Dashboard({
             <div className={`stat-value ${currentRemaining < 0 ? 'negative' : ''}`}>
               {formatMoney(currentRemaining)}
             </div>
+            {remainingVerdict && (
+              <div className={`stat-sub stat-sub-${remainingVerdict.tone}`}>
+                {remainingVerdict.word}
+              </div>
+            )}
           </div>
         )}
       </div>
