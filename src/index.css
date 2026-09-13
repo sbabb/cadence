@@ -640,11 +640,8 @@ input, button, select, textarea {
   background: var(--amber);
 }
 
-/* The scale's labels: zero beneath the mark, the day's limit beneath the lane
-   it measures. Deliberately quiet - the big figure above is the headline and
-   this is the axis it is read against. The limit figure matters more than it
-   looks, because it is the number the DAILY LIMIT TODAY box stops showing the
-   moment the day is spent out. */
+/* The axis under the track. One label, deliberately quiet: the big figure
+   above is the headline and this is only the scale it is read against. */
 .bar-scale {
   position: relative;
   height: 15px;
@@ -658,14 +655,6 @@ input, button, select, textarea {
   top: 0;
   transform: translateX(-50%);
   color: var(--amber);
-}
-
-.bar-scale-limit {
-  position: absolute;
-  top: 0;
-  right: 0;
-  color: var(--green);
-  opacity: 0.8;
 }
 
 /* Width and colour are driven from JavaScript, so there is deliberately no

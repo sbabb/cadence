@@ -63,20 +63,23 @@ export default function Dashboard({
   // rolled-over total gets its own explicit line so neither number is lost.
   const isLastDay = Boolean(todayInfo) && today === period.endDate
 
-  // Once today's spend has reached today's limit there is nothing left to
-  // spend today, and the box says $0 rather than going on advertising a limit
-  // that has already been used up. Showing "$50" above a bar reading "$150
-  // over" was the dashboard stating the allowance and the overspend as if they
-  // were both still live; only one of them is.
+  // Whether today's limit has been spent out. It no longer changes the FIGURE
+  // - only the note under it.
   //
-  // The full figure is not lost - the LIMIT column of today's row in the day
-  // list still holds the amount today STARTED with, which is what the day gets
-  // judged against. This box is the live answer to "what may I still spend",
-  // and that answer is nothing.
+  // This box used to drop to $0 once the limit was gone, on the reasoning that
+  // a used-up allowance should stop advertising itself. It read badly in
+  // practice: today's row in the day list still showed LIMIT $50, so the
+  // screen carried two numbers both labelled "limit" that disagreed with each
+  // other. One number with two answers is worse than a number that needs a
+  // word of context.
+  //
+  // So the figure is the day's limit, matching the row, and the note carries
+  // the state. Nothing is lost by it - "there is nothing left today" is the
+  // spend bar's entire job, and it says so directly above in red.
   const todaySpent = todayInfo && todayInfo.logged ? todayInfo.amount : 0
   const isSpentOut = todayLimit !== null && todaySpent > 0 && todaySpent >= todayLimit
 
-  const displayedDailyLimit = isSpentOut ? 0 : isLastDay ? todayInfo.baselineDailyLimit : todayLimit
+  const displayedDailyLimit = isLastDay ? todayInfo.baselineDailyLimit : todayLimit
 
   // Whether the limit actually moved since yesterday. It's designed to hold
   // steady - a few dollars of daily variance spread over the remaining days
@@ -84,11 +87,9 @@ export default function Dashboard({
   // so the days it DOES move are marked. Suppressed on the last day, where the
   // box shows a static baseline that has nothing to compare against.
   //
-  // It deliberately survives a spent-out day, even though the figure above it
-  // has gone to $0. The two are answering different questions - $0 is what is
-  // left of today, the delta is what a day is currently worth - and the day a
-  // limit moves is exactly the day you want told about it. Today's row in the
-  // day list still carries the figure the delta is measured against.
+  // It deliberately survives a spent-out day: the day a limit moves is exactly
+  // the day you want told about it, and being over budget is no reason to
+  // withhold the fact.
   const limitDelta = useMemo(() => {
     if (isLastDay || previousDayLimit === null || todayLimit === null) return null
     const delta = todayLimit - previousDayLimit

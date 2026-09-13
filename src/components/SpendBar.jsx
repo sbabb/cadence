@@ -363,16 +363,20 @@ export default function SpendBar({
           )}
         </div>
 
-        {/* The two figures the split track is drawn against. The big red
-            number says how deep the hole is; these say where zero was and what
-            the day was worth - which is the one number the stat box above
-            deliberately stops showing once the day is spent out. */}
+        {/* Zero, labelled. The mark is the landmark the red is measured from,
+            and a mark with no number on it is just a line.
+         *
+         * The day's limit used to be labelled out at the right end too. It was
+         * here to cover for the stat box, which at the time dropped to $0 the
+         * moment the day was spent out; now that the box shows the limit
+         * again, printing it here as well put the same figure on screen twice
+         * within an inch of itself. The lane still shows the limit - that is
+         * what its width IS - it just no longer announces it. */}
         {isOver && (
           <div className="bar-scale" aria-hidden="true">
             <span className="bar-scale-zero" style={{ left: `${ZERO_MARK * 100}%` }}>
               0
             </span>
-            <span className="bar-scale-limit">{formatMoney(safeLimit)}</span>
           </div>
         )}
 
