@@ -59,6 +59,10 @@ through, never generated in advance.
 - **Period history** you swipe back through, an end-of-period summary that
   states the facts without moralising, and a trends chart across every period —
   tap any bar to jump straight to that period.
+- **Android back works properly.** Back closes the spend sheet, the dialog, the
+  FAQ or Settings — whatever is actually on top — and only leaves the app once
+  there is nothing left to close, which is what every other app on the phone
+  does. It costs one history entry per open screen and no URL ever changes.
 
 ## Running it
 
@@ -90,7 +94,7 @@ this codebase hands a string to `dangerouslySetInnerHTML`. `npm run verify`
 fails if `FAQ.md` has been edited without regenerating, so the document and the
 in-app copy cannot drift apart.
 
-The four suites need no dependencies and run on plain node. They prove the
+The five suites need no dependencies and run on plain node. They prove the
 *arithmetic* — that a paycheque on the 31st lands correctly in February — but
 they never mount a component, so they are blind to the class of bug that lives
 in React itself: a value captured stale in a closure, an effect that re-runs
@@ -109,6 +113,13 @@ not a style guide; every rule in it describes a way the app can misbehave.
   answered with a deploy-window error page. None of those reproduce on a fast
   desk connection, which is the whole reason they are asserted rather than
   tried.
+- `scripts/verify-backstack.mjs` — 18 checks on what the Android back button
+  does. Every way this fails looks the same from the sofa ("I pressed back"),
+  and the two failure modes are opposites: too few history entries and back
+  throws you out of the app mid-task, too many and it appears to do nothing
+  several times in a row. Both depend on ordering, so the suite models a
+  browser — a real entry list, React unmounting in commits, and a separate
+  microtask and macrotask queue so a history traversal stays asynchronous.
 
 ## Installing it on a phone
 
@@ -250,6 +261,7 @@ src/
     themes.js          the three palettes and the token writer
     motion.js          durations and easing curves, single source of truth
     dateUtils.js       'YYYY-MM-DD' date maths
+    backStack.js       one history entry per open screen, for the back button
   utils/
     backup.js          backup envelope, validation, summaries — DOM-free
     fileTransfer.js    saving a file out and reading one back in
@@ -259,6 +271,7 @@ src/
     useAnimatedValue.js  rAF interpolation
     useThemeColors.js  the active ramp colours, via context
     useKeyboardInset.js  visualViewport fallback for the on-screen keyboard
+    useBackDismiss.js  registers a screen as closable by the back button
   components/          screens and widgets
 eslint.config.js       the React bugs the suites below cannot see
 scripts/
@@ -267,6 +280,7 @@ scripts/
   verify-themes.mjs    100 colour checks, likewise
   verify-backup.mjs    27 backup-format checks, mostly rejections
   verify-sw.mjs        14 checks on offline, stalled and mid-deploy launches
+  verify-backstack.mjs 18 checks on what the back button closes
 ```
 
 Everything is a pure recompute: the engine derives the whole period from its

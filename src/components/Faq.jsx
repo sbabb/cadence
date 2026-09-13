@@ -1,5 +1,6 @@
 import { Fragment, useMemo, useState } from 'react'
 import { FAQ } from '../generated/faq.js'
+import useBackDismiss from '../hooks/useBackDismiss.js'
 
 // The FAQ, rendered from FAQ.md.
 //
@@ -58,6 +59,9 @@ function Blocks({ blocks }) {
 }
 
 export default function Faq({ onBack }) {
+  // Back returns to Settings, which is where the FAQ was opened from.
+  useBackDismiss(onBack)
+
   const [open, setOpen] = useState(() => new Set())
 
   const questionCount = useMemo(

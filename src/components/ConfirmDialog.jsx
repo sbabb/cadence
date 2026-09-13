@@ -1,7 +1,10 @@
-// Generic centered confirm/cancel dialog. Used for destructive actions
-// (currently just the dev-only "reset all data" button) where a plain
-// browser confirm() would look out of place against the terminal styling
-// and can't be restyled to signal danger.
+import useBackDismiss from '../hooks/useBackDismiss.js'
+
+// Generic centered confirm/cancel dialog. Used for the three actions that
+// can lose data - importing a backup over everything, abandoning the current
+// period, and narrowing a period past days that already have spending logged
+// - where a plain browser confirm() would look out of place against the
+// terminal styling and can't be restyled to signal danger.
 export default function ConfirmDialog({
   message,
   confirmLabel = 'CONFIRM',
@@ -10,6 +13,11 @@ export default function ConfirmDialog({
   onConfirm,
   onCancel
 }) {
+  // Back dismisses the dialog, which is what every other dialog on the
+  // phone does. It sits above whatever opened it, so this closes the
+  // dialog only and leaves that screen where it was.
+  useBackDismiss(onCancel)
+
   const handleBackdropClick = (e) => {
     if (e.target === e.currentTarget) onCancel()
   }

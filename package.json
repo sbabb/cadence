@@ -11,11 +11,12 @@
     "preview": "vite preview",
     "faq": "node scripts/build-faq.mjs",
     "lint": "eslint .",
-    "verify": "eslint . && node scripts/build-faq.mjs --check && node scripts/verify-engine.mjs && node scripts/verify-themes.mjs && node scripts/verify-backup.mjs && node scripts/verify-sw.mjs",
+    "verify": "eslint . && node scripts/build-faq.mjs --check && node scripts/verify-engine.mjs && node scripts/verify-themes.mjs && node scripts/verify-backup.mjs && node scripts/verify-sw.mjs && node scripts/verify-backstack.mjs",
     "verify:engine": "node scripts/verify-engine.mjs",
     "verify:themes": "node scripts/verify-themes.mjs",
     "verify:backup": "node scripts/verify-backup.mjs",
-    "verify:sw": "node scripts/verify-sw.mjs"
+    "verify:sw": "node scripts/verify-sw.mjs",
+    "verify:backstack": "node scripts/verify-backstack.mjs"
   },
   "dependencies": {
     "@fontsource/jetbrains-mono": "^5.3.0",

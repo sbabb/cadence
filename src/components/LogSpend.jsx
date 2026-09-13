@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { formatMoney } from '../utils/format.js'
 import useKeyboardInset from '../hooks/useKeyboardInset.js'
+import useBackDismiss from '../hooks/useBackDismiss.js'
 
 // The spend sheet. Both ways of recording a number live here now:
 //
@@ -20,6 +21,10 @@ import useKeyboardInset from '../hooks/useKeyboardInset.js'
 // whether the day has a figure, not on whether the day is today, so a past day
 // can now be added to as well as overwritten.
 export default function LogSpend({ currentTotal, alreadyLogged, dailyLimit, isToday, dateLabel, onConfirm, onCancel }) {
+  // Back cancels the sheet rather than leaving the app - the same as
+  // CANCEL, and the same as tapping the backdrop.
+  useBackDismiss(onCancel)
+
   const [amountInput, setAmountInput] = useState('')
 
   // The sheet is anchored to the bottom of the screen, which is exactly where

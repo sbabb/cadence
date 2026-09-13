@@ -6,6 +6,7 @@ import { THEMES } from '../utils/themes.js'
 import { parseBackup } from '../utils/backup.js'
 import { exportBackup, readTextFile } from '../utils/fileTransfer.js'
 import ConfirmDialog from './ConfirmDialog.jsx'
+import useBackDismiss from '../hooks/useBackDismiss.js'
 
 // Reached from the dashboard's header (PeriodPager's "SETTINGS" button).
 // Five independent sections: editing the active period's amount/end date, the
@@ -31,6 +32,10 @@ export default function Settings({
   onOpenFaq,
   onBack
 }) {
+  // Back returns to the dashboard. Any confirm dialog open on top of
+  // Settings registers after this one, so back takes that off first.
+  useBackDismiss(onBack)
+
   const [amountInput, setAmountInput] = useState(String(period.initialAmount))
   const [endDate, setEndDate] = useState(period.endDate)
   const [error, setError] = useState('')
