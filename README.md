@@ -102,8 +102,17 @@ when it shouldn't. `eslint.config.js` covers that gap and runs first. It is
 not a style guide; every rule in it describes a way the app can misbehave.
 
 - `scripts/verify-engine.mjs` — 77 scenarios over the algorithm above.
-- `scripts/verify-themes.mjs` — 100 contrast, colour-ramp and running-order
+- `scripts/verify-themes.mjs` — 97 contrast, colour-ramp and running-order
   checks for every theme. See *Themes* below for why this one isn't optional.
+- `scripts/verify-bar.mjs` — 14 checks on the spend bar's geometry, which lives
+  in `src/utils/barScale.js` precisely so a script can reach it. The bar shipped
+  wrong three times — a fixed zero mark with an invented reservoir behind it, a
+  CSS cascade bug that anchored the overage to the wrong edge, a figure printed
+  twice — and nothing here could have caught any of it. The cascade bug is still
+  out of reach. The arithmetic is not, and the arithmetic is where the design
+  decisions actually live: that the red and the limit lane account for the whole
+  track with no unexplained space, that the fill does not jump at the moment of
+  going over, and that a $0 limit draws all red.
 - `scripts/verify-backup.mjs` — 27 checks on the backup format, most of them
   about what it must *refuse*. Importing replaces everything, so a malformed
   file being accepted is the one bug here that destroys data silently.
@@ -282,6 +291,7 @@ scripts/
   build-faq.mjs        FAQ.md -> src/generated/faq.js, for the in-app FAQ
   verify-engine.mjs    77 scenarios, run with plain node
   verify-themes.mjs    97 colour checks, likewise
+  verify-bar.mjs       14 checks on the spend bar's geometry
   verify-backup.mjs    27 backup-format checks, mostly rejections
   verify-sw.mjs        14 checks on offline, stalled and mid-deploy launches
   verify-backstack.mjs 19 checks on what the back button closes
