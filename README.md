@@ -94,7 +94,7 @@ this codebase hands a string to `dangerouslySetInnerHTML`. `npm run verify`
 fails if `FAQ.md` has been edited without regenerating, so the document and the
 in-app copy cannot drift apart.
 
-The five suites need no dependencies and run on plain node. They prove the
+The six suites need no dependencies and run on plain node. They prove the
 *arithmetic* — that a paycheque on the 31st lands correctly in February — but
 they never mount a component, so they are blind to the class of bug that lives
 in React itself: a value captured stale in a closure, an effect that re-runs
@@ -113,6 +113,13 @@ not a style guide; every rule in it describes a way the app can misbehave.
   decisions actually live: that the red and the limit lane account for the whole
   track with no unexplained space, that the fill does not jump at the moment of
   going over, and that a $0 limit draws all red.
+- `scripts/verify-stats.mjs` — 15 checks on the DAILY LIMIT TODAY box, which
+  lives in `src/utils/limitStat.js` for the same reason the bar's geometry does.
+  It shipped showing the period's usual $43 target on a last day whose budget
+  was $130 in the hole, while today's row in the list beneath it said $0 — one
+  screen, two numbers labelled "limit", disagreeing. The rule it now holds to:
+  the box shows the live limit, and may only ever differ from it by being
+  smaller.
 - `scripts/verify-backup.mjs` — 27 checks on the backup format, most of them
   about what it must *refuse*. Importing replaces everything, so a malformed
   file being accepted is the one bug here that destroys data silently.
@@ -269,6 +276,7 @@ src/
   main.jsx             entry point; paints the saved theme before first render
   utils/
     budgetEngine.js    the algorithm above — pure, fully tested
+    limitStat.js       what the DAILY LIMIT TODAY box shows, and why
     cadence.js         payday arithmetic and period derivation
     color.js           sRGB <-> OKLCH conversion and the ramp
     themes.js          the three palettes and the token writer
@@ -292,6 +300,7 @@ scripts/
   verify-engine.mjs    77 scenarios, run with plain node
   verify-themes.mjs    97 colour checks, likewise
   verify-bar.mjs       14 checks on the spend bar's geometry
+  verify-stats.mjs     15 checks on the daily limit stat box
   verify-backup.mjs    27 backup-format checks, mostly rejections
   verify-sw.mjs        14 checks on offline, stalled and mid-deploy launches
   verify-backstack.mjs 19 checks on what the back button closes

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { formatDisplayDate, formatDisplayDateWithDay, formatTimeRemaining } from '../utils/dateUtils.js'
 import { formatMoney } from '../utils/format.js'
+import { limitStat } from '../utils/limitStat.js'
 import DayList from './DayList.jsx'
 import SpendBar from './SpendBar.jsx'
 
@@ -55,52 +56,23 @@ export default function Dashboard({
 
   const todayLimit = todayInfo ? todayInfo.dailyLimit : null
 
-  // On the LAST day of a period, the live dailyLimit necessarily equals
-  // whatever's left in the budget (only one day remains to spend it) - which
-  // can read as a confusingly large, seemingly-arbitrary "limit" if a lot
-  // rolled forward from earlier underspending. On that one day, the stat box
-  // shows the period's steady baseline target instead, and the actual
-  // rolled-over total gets its own explicit line so neither number is lost.
   const isLastDay = Boolean(todayInfo) && today === period.endDate
-
-  // Whether today's limit has been spent out. It no longer changes the FIGURE
-  // - only the note under it.
-  //
-  // This box used to drop to $0 once the limit was gone, on the reasoning that
-  // a used-up allowance should stop advertising itself. It read badly in
-  // practice: today's row in the day list still showed LIMIT $50, so the
-  // screen carried two numbers both labelled "limit" that disagreed with each
-  // other. One number with two answers is worse than a number that needs a
-  // word of context.
-  //
-  // So the figure is the day's limit, matching the row, and the note carries
-  // the state. Nothing is lost by it - "there is nothing left today" is the
-  // spend bar's entire job, and it says so directly above in red.
   const todaySpent = todayInfo && todayInfo.logged ? todayInfo.amount : 0
-  const isSpentOut = todayLimit !== null && todaySpent > 0 && todaySpent >= todayLimit
 
-  const displayedDailyLimit = isLastDay ? todayInfo.baselineDailyLimit : todayLimit
-
-  // Whether the limit actually moved since yesterday. It's designed to hold
-  // steady - a few dollars of daily variance spread over the remaining days
-  // rounds away to nothing - but an unchanging number gives no sign it's alive,
-  // so the days it DOES move are marked. Suppressed on the last day, where the
-  // box shows a static baseline that has nothing to compare against.
-  //
-  // It deliberately survives a spent-out day: the day a limit moves is exactly
-  // the day you want told about it, and being over budget is no reason to
-  // withhold the fact.
-  const limitDelta = useMemo(() => {
-    if (isLastDay || previousDayLimit === null || todayLimit === null) return null
-    const delta = todayLimit - previousDayLimit
-    return delta === 0 ? null : delta
-  }, [isLastDay, previousDayLimit, todayLimit])
-
-  // What goes in the third row when there is no delta to put there. The limit
-  // holding steady is the designed-for case, not a missing value, so the slot
-  // says so rather than sitting empty next to two boxes that have something in
-  // theirs.
-  const limitSubNote = isLastDay ? 'usual target' : isSpentOut ? 'spent out' : 'steady'
+  // The figure in the DAILY LIMIT TODAY box, the note under it and whether the
+  // limit moved since yesterday - all one decision, and it lives in
+  // src/utils/limitStat.js where a script can check it.
+  const dailyLimit = useMemo(
+    () =>
+      limitStat({
+        isLastDay,
+        todayLimit,
+        baselineDailyLimit: todayInfo ? todayInfo.baselineDailyLimit : null,
+        todaySpent,
+        previousDayLimit
+      }),
+    [isLastDay, todayLimit, todayInfo, todaySpent, previousDayLimit]
+  )
 
   // The REMAINING figure states a quantity; this states what the quantity
   // MEANS, which is the thing you actually want at a glance.
@@ -183,16 +155,18 @@ export default function Dashboard({
         <div className="stat-box">
           <div className="stat-label">DAILY LIMIT TODAY</div>
           <div className="stat-value">
-            {formatMoney(displayedDailyLimit)}
+            {formatMoney(dailyLimit.amount)}
           </div>
-          {limitDelta !== null ? (
-            <div className={`stat-delta ${limitDelta > 0 ? 'stat-delta-up' : 'stat-delta-down'}`}>
-              <span className="stat-delta-arrow">{limitDelta > 0 ? '▲' : '▼'}</span>
-              {formatMoney(Math.abs(limitDelta))}
+          {dailyLimit.delta !== null ? (
+            <div
+              className={`stat-delta ${dailyLimit.delta > 0 ? 'stat-delta-up' : 'stat-delta-down'}`}
+            >
+              <span className="stat-delta-arrow">{dailyLimit.delta > 0 ? '▲' : '▼'}</span>
+              {formatMoney(Math.abs(dailyLimit.delta))}
               <span className="stat-delta-note">vs yesterday</span>
             </div>
           ) : (
-            <div className="stat-sub">{limitSubNote}</div>
+            <div className="stat-sub">{dailyLimit.note}</div>
           )}
         </div>
         {isLastDay ? (
@@ -234,8 +208,10 @@ export default function Dashboard({
       {isLastDay && (
         <p className={`last-day-note ${lastDayNoteOpen ? 'last-day-note-open' : ''}`}>
           Last day of the period - every rolled-over dollar is available today, so
-          REMAINING is what you have rather than a running balance. The daily limit
-          beside it is your usual steady target, kept for reference.
+          REMAINING is what you have rather than a running balance.
+          {dailyLimit.showingBaseline
+            ? ' The daily limit beside it is your usual steady target, kept for reference.'
+            : ''}
         </p>
       )}
 
