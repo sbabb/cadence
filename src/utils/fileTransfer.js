@@ -1,4 +1,5 @@
 import { buildBackup, backupFilename } from './backup.js'
+import { renderReportCardBlob } from './reportCardImage.js'
 
 // Getting a file out of the app and back into it.
 //
@@ -16,8 +17,13 @@ import { buildBackup, backupFilename } from './backup.js'
 // download link is - so the app tries the good one and keeps the old one as
 // the floor.
 export async function saveTextFile(filename, text, mimeType = 'application/json') {
-  const blob = new Blob([text], { type: mimeType })
+  return saveBlobFile(filename, new Blob([text], { type: mimeType }), mimeType)
+}
 
+// The same two routes out, for something that was never text. A report card
+// is a PNG, and a PNG is worth sharing far more often than a backup is - the
+// share sheet is the whole point of saving one.
+export async function saveBlobFile(filename, blob, mimeType) {
   if (typeof File === 'function' && navigator.canShare && navigator.share) {
     try {
       const file = new File([blob], filename, { type: mimeType })
@@ -48,7 +54,7 @@ export async function saveTextFile(filename, text, mimeType = 'application/json'
     setTimeout(() => URL.revokeObjectURL(url), 10000)
     return 'downloaded'
   } catch (err) {
-    console.error('Failed to save backup file:', err)
+    console.error('Failed to save file:', err)
     return 'failed'
   }
 }
@@ -57,6 +63,13 @@ export async function saveTextFile(filename, text, mimeType = 'application/json'
 // produces an identical file.
 export function exportBackup(data) {
   return saveTextFile(backupFilename(), JSON.stringify(buildBackup(data), null, 2))
+}
+
+// A period's report card as a shareable PNG, in one call.
+export async function exportReportCard(card) {
+  const blob = await renderReportCardBlob(card)
+  if (!blob) return 'failed'
+  return saveBlobFile(card.filename, blob, 'image/png')
 }
 
 export function readTextFile(file) {

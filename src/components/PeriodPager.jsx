@@ -27,6 +27,7 @@ export default function PeriodPager({
   now,
   previousDayLimit,
   onLogForDate,
+  onOpenReportCard,
   homeNonce,
 }) {
   const activeIndex = periods.length - 1
@@ -154,6 +155,18 @@ export default function PeriodPager({
       ) : (
         <PastPeriodView key={period.id} period={period} schedule={pastSchedule} reconciled={pastReconciled} />
       )}
+
+      {/* Below the period it belongs to, for every period, current or
+          finished. Putting it here rather than on the Trends chart is what
+          makes it need no period picker: whichever page you are on IS the
+          answer, and the pager already got you here. */}
+      <button
+        type="button"
+        className="report-card-button"
+        onClick={() => onOpenReportCard(viewIndex)}
+      >
+        REPORT CARD
+      </button>
     </div>
   )
 }

@@ -94,7 +94,7 @@ this codebase hands a string to `dangerouslySetInnerHTML`. `npm run verify`
 fails if `FAQ.md` has been edited without regenerating, so the document and the
 in-app copy cannot drift apart.
 
-The seven suites need no dependencies and run on plain node. They prove the
+The eight suites need no dependencies and run on plain node. They prove the
 *arithmetic* — that a paycheque on the 31st lands correctly in February — but
 they never mount a component, so they are blind to the class of bug that lives
 in React itself: a value captured stale in a closure, an effect that re-runs
@@ -127,6 +127,14 @@ not a style guide; every rule in it describes a way the app can misbehave.
   Dismissing a keyboard you did not mean to summon recorded a spend for a day
   you had not touched. The rule it now holds to: an empty field is not an
   amount, while a deliberately typed `0` still is.
+- `scripts/verify-report.mjs` — 17 checks on the report card: what it says
+  about a period, and where that lands on the image it saves. The card is
+  reachable for any period now rather than appearing once as a period closes,
+  and it can leave the app as a PNG that outlives it — a screen you can
+  re-open is one someone will check against their bank, and an image can be
+  sent to someone with no way to audit it. So the figures live in
+  `src/utils/reportCard.js`, the image's geometry in
+  `src/utils/reportCardLayout.js`, and the painter does no thinking.
 - `scripts/verify-backup.mjs` — 27 checks on the backup format, most of them
   about what it must *refuse*. Importing replaces everything, so a malformed
   file being accepted is the one bug here that destroys data silently.
@@ -285,6 +293,9 @@ src/
     budgetEngine.js    the algorithm above — pure, fully tested
     limitStat.js       what the DAILY LIMIT TODAY box shows, and why
     spendInput.js      why an empty amount field is not the same as $0
+    reportCard.js      what a period's report card says
+    reportCardLayout.js  where that lands on the saved image
+    reportCardImage.js   paints it onto a canvas; decides nothing
     cadence.js         payday arithmetic and period derivation
     color.js           sRGB <-> OKLCH conversion and the ramp
     themes.js          the three palettes and the token writer
@@ -310,6 +321,7 @@ scripts/
   verify-bar.mjs       14 checks on the spend bar's geometry
   verify-stats.mjs     15 checks on the daily limit stat box
   verify-sheet.mjs     11 checks on the spend sheet's amount field
+  verify-report.mjs    17 checks on the report card and its image
   verify-backup.mjs    27 backup-format checks, mostly rejections
   verify-sw.mjs        14 checks on offline, stalled and mid-deploy launches
   verify-backstack.mjs 19 checks on what the back button closes

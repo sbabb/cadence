@@ -43,7 +43,7 @@ jobs:
 
       - run: npm ci
 
-      - name: Lint, then verify engine, themes, spend bar, stat box, spend sheet, backup format, service worker and back button
+      - name: Lint, then verify engine, themes, spend bar, stat box, spend sheet, report card, backup format, service worker and back button
         run: npm run verify
 
       - run: npm run build

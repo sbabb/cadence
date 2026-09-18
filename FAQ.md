@@ -125,7 +125,7 @@ page tells nobody anything.
 **So what is the worst that could realistically happen?**
 Your Cadence history gets corrupted or lost, or a daily limit comes out wrong.
 The first is why **EXPORT BACKUP** exists and why the app warns you rather than
-quietly starting over. The second is what the 277 automated checks that run
+quietly starting over. The second is what the 294 automated checks that run
 before every single update are there to catch. Neither one reaches anything
 else on your phone.
 
@@ -254,6 +254,18 @@ shows up under REMAINING instead.
 **What happens when a period ends?**
 You get a summary of how it went, an offer to save a backup, and the next
 period is set up for you based on your pay cadence.
+
+**Can I see that summary again later?**
+Yes. Every period has a **REPORT CARD** button at the bottom of its screen —
+the current one and every finished one. Swipe back to a period, or tap its bar
+in Trends, and the button is underneath the day list.
+
+**Can I save a report card as a picture?**
+Yes. Open it and tap **SAVE AS IMAGE**. Your phone's share sheet opens, so it
+can go straight to Photos, Drive, a message, or an email; if sharing is not
+available it saves to your downloads instead. The image is drawn fresh rather
+than screenshotted, so it looks the same everywhere and uses whichever theme
+you have on.
 
 **I was away for a week and haven't opened it.**
 It notices. A gap of three days or more gets acknowledged rather than silently

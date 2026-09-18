@@ -4,7 +4,7 @@
 // (or `npm run faq`) regenerates this. `npm run verify` fails if the two have
 // drifted, so a stale copy cannot reach a user.
 //
-// 9 sections, 45 questions.
+// 9 sections, 47 questions.
 export const FAQ = {
   "title": "Cadence — the short answers",
   "intro": [
@@ -323,7 +323,7 @@ export const FAQ = {
                 {
                   "b": "EXPORT BACKUP"
                 },
-                " exists and why the app warns you rather than quietly starting over. The second is what the 277 automated checks that run before every single update are there to catch. Neither one reaches anything else on your phone."
+                " exists and why the app warns you rather than quietly starting over. The second is what the 294 automated checks that run before every single update are there to catch. Neither one reaches anything else on your phone."
               ]
             }
           ]
@@ -682,6 +682,36 @@ export const FAQ = {
             {
               "type": "p",
               "body": "You get a summary of how it went, an offer to save a backup, and the next period is set up for you based on your pay cadence."
+            }
+          ]
+        },
+        {
+          "q": "Can I see that summary again later?",
+          "body": [
+            {
+              "type": "p",
+              "body": [
+                "Yes. Every period has a ",
+                {
+                  "b": "REPORT CARD"
+                },
+                " button at the bottom of its screen — the current one and every finished one. Swipe back to a period, or tap its bar in Trends, and the button is underneath the day list."
+              ]
+            }
+          ]
+        },
+        {
+          "q": "Can I save a report card as a picture?",
+          "body": [
+            {
+              "type": "p",
+              "body": [
+                "Yes. Open it and tap ",
+                {
+                  "b": "SAVE AS IMAGE"
+                },
+                ". Your phone's share sheet opens, so it can go straight to Photos, Drive, a message, or an email; if sharing is not available it saves to your downloads instead. The image is drawn fresh rather than screenshotted, so it looks the same everywhere and uses whichever theme you have on."
+              ]
             }
           ]
         },

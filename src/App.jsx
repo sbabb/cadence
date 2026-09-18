@@ -6,6 +6,7 @@ import { ThemeColorsContext } from './hooks/useThemeColors.js'
 import { applyTheme, getTheme, rampColorsFor } from './utils/themes.js'
 import { formatDisplayDateWithDay, daysBetweenInclusive, compareDateStr } from './utils/dateUtils.js'
 import { deriveNextPeriod } from './utils/cadence.js'
+import { reconcilePeriod } from './utils/budgetEngine.js'
 import Onboarding from './components/Onboarding'
 import PeriodSetup from './components/PeriodSetup'
 import PeriodPager from './components/PeriodPager'
@@ -13,6 +14,7 @@ import LogSpend from './components/LogSpend'
 import PeriodSummary from './components/PeriodSummary'
 import LapsedNotice from './components/LapsedNotice'
 import Trends from './components/Trends'
+import ReportCard from './components/ReportCard'
 import Settings from './components/Settings'
 import Faq from './components/Faq'
 import StorageWarning from './components/StorageWarning'
@@ -93,6 +95,12 @@ export default function App() {
     }
   }, [periodEnded])
 
+  // Which period's report card is open, as an index into `periods`, or null
+  // for none. An index rather than a boolean because the card is opened from a
+  // specific page of the pager and must keep showing that period even as the
+  // pager's own view index moves around behind it.
+  const [reportCardIndex, setReportCardIndex] = useState(null)
+
   const [showTrends, setShowTrends] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
   // Opened from Settings and returns there, so the back stack stays honest.
@@ -113,6 +121,7 @@ export default function App() {
   // stay true while something is stacked on top. The call order is the order
   // back takes them off; the spend sheet and the confirm dialogs register
   // themselves, since for those being mounted really does mean being open.
+  useBackDismiss(() => setReportCardIndex(null), reportCardIndex !== null)
   useBackDismiss(() => setShowTrends(false), showTrends)
   useBackDismiss(() => setShowSettings(false), showSettings)
   useBackDismiss(() => setShowFaq(false), showFaq)
@@ -164,6 +173,7 @@ export default function App() {
   // server, so nothing needs re-fetching, and reloading would only disguise a
   // bug rather than fix it.
   const goHome = () => {
+    setReportCardIndex(null)
     setShowTrends(false)
     setShowSettings(false)
     setShowFaq(false)
@@ -196,6 +206,7 @@ export default function App() {
   // screen a moment ago referred to periods that no longer exist.
   const handleImportData = (next) => {
     replaceAllData(next)
+    setReportCardIndex(null)
     setEndFlowStep(null)
     setEditingDate(null)
     setViewIndex(Math.max(0, next.periods.length - 1))
@@ -222,6 +233,17 @@ export default function App() {
   const previousPeriod = periods.length > 0 ? periods[periods.length - 1] : null
   const nextPeriodDates = previousPeriod ? deriveNextPeriod(previousPeriod, cadence, today) : null
   const nextPeriodAmount = previousPeriod ? previousPeriod.initialAmount : null
+
+  // The period whose report card is open, and its reconciled figures. The
+  // active period's reconciliation is already computed live by useBudgetData,
+  // so only a historical one needs doing here - and only while a card is
+  // actually open.
+  const reportCardPeriod = reportCardIndex !== null ? periods[reportCardIndex] : null
+  const reportCardReconciled = useMemo(() => {
+    if (!reportCardPeriod) return null
+    if (reportCardPeriod === currentPeriod) return reconciled
+    return reconcilePeriod(reportCardPeriod, today)
+  }, [reportCardPeriod, currentPeriod, reconciled, today])
 
   // The schedule row for whichever date is currently open in the sheet, used
   // to pre-fill the existing amount and show that day's applicable limit.
@@ -261,6 +283,14 @@ export default function App() {
         initialDates={nextPeriodDates}
         initialAmount={nextPeriodAmount}
         onStart={handleStartPeriod}
+      />
+    )
+  } else if (reportCardPeriod && reportCardReconciled && !sheetOpen) {
+    screen = (
+      <ReportCard
+        period={reportCardPeriod}
+        reconciled={reportCardReconciled}
+        onBack={() => setReportCardIndex(null)}
       />
     )
   } else if (showTrends) {
@@ -311,6 +341,7 @@ export default function App() {
           now={now}
           previousDayLimit={previousDayLimit}
           onLogForDate={openLogForDate}
+          onOpenReportCard={(idx) => setReportCardIndex(idx)}
           homeNonce={homeNonce}
       />
     )

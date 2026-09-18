@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { formatDisplayDateWithDay } from '../utils/dateUtils.js'
 import { formatMoney } from '../utils/format.js'
 import { summarizePeriod } from '../utils/budgetEngine.js'
+import { assessmentFor } from '../utils/reportCard.js'
 import { exportBackup } from '../utils/fileTransfer.js'
 
 // Shown once, automatically, right after a period's end date passes and
@@ -25,21 +26,9 @@ export default function PeriodSummary({ period, reconciled, rawData, onContinue 
   }
   const { totalSpent, totalBudget, daysTracked, daysOver, daysUnder, daysAtLimit, remaining } = summary
 
-  let assessment
-  let assessmentClass
-  if (daysTracked === 0) {
-    assessment = 'NO DAYS TRACKED THIS PERIOD'
-    assessmentClass = 'assessment-neutral'
-  } else if (remaining > 0) {
-    assessment = `UNDER BUDGET BY ${formatMoney(remaining)}`
-    assessmentClass = 'assessment-good'
-  } else if (remaining === 0) {
-    assessment = 'EXACTLY ON BUDGET'
-    assessmentClass = 'assessment-neutral'
-  } else {
-    assessment = `OVER BUDGET BY ${formatMoney(Math.abs(remaining))}`
-    assessmentClass = 'assessment-over'
-  }
+  // The same verdict the report card shows, from the same place - this screen
+  // and that one must never describe the same period differently.
+  const assessment = assessmentFor(summary)
 
   return (
     <div className="screen summary-screen">
@@ -79,7 +68,7 @@ export default function PeriodSummary({ period, reconciled, rawData, onContinue 
         </div>
       </div>
 
-      <div className={`summary-assessment ${assessmentClass}`}>{assessment}</div>
+      <div className={`summary-assessment assessment-${assessment.tone}`}>{assessment.text}</div>
 
       <div className="summary-backup">
         <p className="summary-backup-hint">
