@@ -285,10 +285,20 @@ input, button, select, textarea {
   cursor: pointer;
 }
 
-.primary-button:hover,
-.primary-button:active {
+.primary-button:hover:not(:disabled),
+.primary-button:active:not(:disabled) {
   background: var(--green);
   color: var(--bg);
+}
+
+/* Nothing typed yet, so there is nothing to log. Dimmed rather than hidden:
+   the button is where it will be needed, it just is not armed. */
+.primary-button:disabled,
+.cancel-button:disabled {
+  color: var(--text-dim);
+  border-color: var(--border);
+  opacity: 0.5;
+  cursor: default;
 }
 
 .cancel-button {
@@ -301,8 +311,8 @@ input, button, select, textarea {
   cursor: pointer;
 }
 
-.cancel-button:hover,
-.cancel-button:active {
+.cancel-button:hover:not(:disabled),
+.cancel-button:active:not(:disabled) {
   color: var(--text);
   border-color: var(--border-bright);
 }

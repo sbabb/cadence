@@ -94,7 +94,7 @@ this codebase hands a string to `dangerouslySetInnerHTML`. `npm run verify`
 fails if `FAQ.md` has been edited without regenerating, so the document and the
 in-app copy cannot drift apart.
 
-The six suites need no dependencies and run on plain node. They prove the
+The seven suites need no dependencies and run on plain node. They prove the
 *arithmetic* — that a paycheque on the 31st lands correctly in February — but
 they never mount a component, so they are blind to the class of bug that lives
 in React itself: a value captured stale in a closure, an effect that re-runs
@@ -120,6 +120,13 @@ not a style guide; every rule in it describes a way the app can misbehave.
   screen, two numbers labelled "limit", disagreeing. The rule it now holds to:
   the box shows the live limit, and may only ever differ from it by being
   smaller.
+- `scripts/verify-sheet.mjs` — 11 checks on how the spend sheet reads its own
+  amount field, which lives in `src/utils/spendInput.js`. It shipped treating an
+  empty field as `$0`, and the field is focused the moment the sheet opens — so
+  the keyboard opens with it, and the keyboard's checkmark submits the form.
+  Dismissing a keyboard you did not mean to summon recorded a spend for a day
+  you had not touched. The rule it now holds to: an empty field is not an
+  amount, while a deliberately typed `0` still is.
 - `scripts/verify-backup.mjs` — 27 checks on the backup format, most of them
   about what it must *refuse*. Importing replaces everything, so a malformed
   file being accepted is the one bug here that destroys data silently.
@@ -277,6 +284,7 @@ src/
   utils/
     budgetEngine.js    the algorithm above — pure, fully tested
     limitStat.js       what the DAILY LIMIT TODAY box shows, and why
+    spendInput.js      why an empty amount field is not the same as $0
     cadence.js         payday arithmetic and period derivation
     color.js           sRGB <-> OKLCH conversion and the ramp
     themes.js          the three palettes and the token writer
@@ -301,6 +309,7 @@ scripts/
   verify-themes.mjs    97 colour checks, likewise
   verify-bar.mjs       14 checks on the spend bar's geometry
   verify-stats.mjs     15 checks on the daily limit stat box
+  verify-sheet.mjs     11 checks on the spend sheet's amount field
   verify-backup.mjs    27 backup-format checks, mostly rejections
   verify-sw.mjs        14 checks on offline, stalled and mid-deploy launches
   verify-backstack.mjs 19 checks on what the back button closes

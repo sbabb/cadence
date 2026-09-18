@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { formatMoney } from '../utils/format.js'
+import { amountFromInput } from '../utils/spendInput.js'
 import useKeyboardInset from '../hooks/useKeyboardInset.js'
 import useBackDismiss from '../hooks/useBackDismiss.js'
 
@@ -38,17 +39,22 @@ export default function LogSpend({ currentTotal, alreadyLogged, dailyLimit, isTo
     setAmountInput(e.target.value.replace(/[^0-9]/g, ''))
   }
 
-  const amount = amountInput === '' ? 0 : parseInt(amountInput, 10)
+  // null means the field is empty - see amountFromInput for why that is not
+  // the same as zero, and what treating them alike cost.
+  const amount = amountFromInput(amountInput)
+  const hasAmount = amount !== null
 
   // Submitting the FORM is the add. That's what makes the phone keyboard's
   // checkmark work: without a form there was nothing for it to submit, so the
   // key did nothing and the keyboard had to be dismissed by hand first.
   const handleSubmit = (e) => {
     e.preventDefault()
+    if (!hasAmount) return
     onConfirm(amount, 'add')
   }
 
   const handleSetTotal = () => {
+    if (!hasAmount) return
     onConfirm(amount, 'replace')
   }
 
@@ -93,13 +99,13 @@ export default function LogSpend({ currentTotal, alreadyLogged, dailyLimit, isTo
           />
         </div>
 
-        <button type="submit" className="primary-button">
+        <button type="submit" className="primary-button" disabled={!hasAmount}>
           {alreadyLogged ? 'ADD' : 'LOG SPEND'}
         </button>
 
         <div className="log-spend-secondary">
           {alreadyLogged && (
-            <button type="button" className="cancel-button" onClick={handleSetTotal}>
+            <button type="button" className="cancel-button" onClick={handleSetTotal} disabled={!hasAmount}>
               SET TOTAL
             </button>
           )}
