@@ -16,7 +16,7 @@ import { formatMoney } from '../utils/format.js'
 // the SPENT figure is drawn as a field rather than plain text - and its tap
 // target is the full row height, so it stays thumb-sized despite looking
 // small.
-export default function DayList({ schedule, editable, selectedDate, onSelectDay, onEditDay }) {
+export default function DayList({ schedule, editable, selectedDate, onSelectDay, onEditDay, onOpenReportCard }) {
   return (
     <div className="day-list">
       <div className="day-list-header">
@@ -120,6 +120,20 @@ export default function DayList({ schedule, editable, selectedDate, onSelectDay,
           </div>
         )
       })}
+
+      {/* The period's footer, in the same sense DATE / SPENT / LIMIT is its
+          header: the same panel grey, flush against the last day, closing the
+          table off rather than hanging underneath it. It sat outside the list
+          first, and the gap made a summary of the whole period read as an
+          afterthought bolted to the bottom of the screen.
+
+          Deliberately outside the `editable` distinction - a finished period
+          is the one you are most likely to want a report card for. */}
+      {onOpenReportCard && (
+        <button type="button" className="day-list-footer" onClick={onOpenReportCard}>
+          REPORT CARD
+        </button>
+      )}
     </div>
   )
 }

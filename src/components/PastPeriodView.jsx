@@ -8,7 +8,7 @@ import DayList from './DayList.jsx'
 // and DayList renders with `editable={false}` so tapping a row does
 // nothing. Completed periods are a permanent record, not something you
 // rewrite by swiping back to them.
-export default function PastPeriodView({ period, schedule, reconciled }) {
+export default function PastPeriodView({ period, schedule, reconciled, onOpenReportCard }) {
   const summary = summarizePeriod(period, reconciled)
 
   return (
@@ -35,7 +35,7 @@ export default function PastPeriodView({ period, schedule, reconciled }) {
         </div>
       </div>
 
-      <DayList schedule={schedule} editable={false} />
+      <DayList schedule={schedule} editable={false} onOpenReportCard={onOpenReportCard} />
     </div>
   )
 }

@@ -205,17 +205,49 @@ check('the end-of-period recap states the same verdict from the same place', () 
   )
 })
 
+check('the button is the day list\'s footer, inside the table', () => {
+  // It hung below the list to begin with, and the gap read as an afterthought
+  // bolted to the bottom of the screen. Being INSIDE .day-list is what makes
+  // it the period's footer rather than something parked underneath it.
+  const src = readFileSync(new URL('../src/components/DayList.jsx', import.meta.url), 'utf8')
+  const listOpen = src.indexOf('<div className="day-list">')
+  const button = src.indexOf('className="day-list-footer"')
+  const listClose = src.lastIndexOf('</div>')
+  assert.ok(listOpen !== -1 && button > listOpen, 'the footer is not inside the day list')
+  assert.ok(button < listClose, 'the footer is outside the day list')
+})
+
 check('every period gets the button, current or finished', () => {
-  const src = readFileSync(new URL('../src/components/PeriodPager.jsx', import.meta.url), 'utf8')
-  assert.match(src, /onOpenReportCard\(viewIndex\)/)
-  // Outside the isActivePeriod branch, so a past period has it too: the
-  // branch closes before the button is reached.
-  const ternary = src.indexOf('isActivePeriod ? (')
-  const button = src.indexOf('onOpenReportCard(viewIndex)')
-  const between = src.slice(ternary, button)
-  assert.ok(ternary !== -1 && button > ternary, 'the button is not rendered after the period screens')
-  assert.ok(between.includes('PastPeriodView'), 'the button sits inside the current-period branch')
-  assert.ok(between.includes(')}'), 'the current-period branch is never closed before the button')
+  // One list component serves both, so the footer cannot be given to one and
+  // withheld from the other by accident - but both still have to pass it on.
+  const dash = readFileSync(new URL('../src/components/Dashboard.jsx', import.meta.url), 'utf8')
+  const past = readFileSync(new URL('../src/components/PastPeriodView.jsx', import.meta.url), 'utf8')
+  const pager = readFileSync(new URL('../src/components/PeriodPager.jsx', import.meta.url), 'utf8')
+  assert.match(dash, /onOpenReportCard=\{onOpenReportCard\}/, 'the current period does not pass it to its list')
+  assert.match(past, /onOpenReportCard=\{onOpenReportCard\}/, 'a finished period does not pass it to its list')
+  assert.equal(
+    (pager.match(/onOpenReportCard=\{openReportCard\}/g) || []).length,
+    2,
+    'the pager must hand it to BOTH the current period and a finished one'
+  )
+  assert.match(pager, /onOpenReportCard\(viewIndex\)/, 'the card opens some other period than the one on screen')
+})
+
+check('the footer is not hidden behind the editable/read-only distinction', () => {
+  // A finished period is the one you are most likely to want a card for, so
+  // the footer must not be tied to the rows being tappable.
+  // Comments stripped first: this file EXPLAINS that the footer is outside the
+  // editable distinction, and a check that reads prose cannot tell the
+  // explanation from the thing it describes.
+  const src = readFileSync(new URL('../src/components/DayList.jsx', import.meta.url), 'utf8')
+    .replace(/\{\/\*[\s\S]*?\*\/\}/g, '')
+  // Anchored on the button itself and read BACKWARDS to the end of the rows,
+  // so the slice cannot be moved by the very edit it is meant to catch.
+  const button = src.indexOf('className="day-list-footer"')
+  const rowsEnd = src.lastIndexOf('})}', button)
+  assert.ok(button !== -1 && rowsEnd !== -1, 'the footer is not where this check can find it')
+  const guard = src.slice(rowsEnd, button)
+  assert.ok(!guard.includes('editable'), 'the footer is conditional on the list being editable')
 })
 
 check('the back button closes the card', () => {

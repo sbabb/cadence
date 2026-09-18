@@ -317,25 +317,29 @@ input, button, select, textarea {
   border-color: var(--border-bright);
 }
 
-/* The report card's way in, sitting under whichever period is on screen.
-   Full width and quiet: it is a destination, not an action, and it must not
-   compete with the spend bar above it. */
-.report-card-button {
+/* The day list's footer, matching its DATE / SPENT / LIMIT header: same panel
+   grey, same table, no gap. It closes the period off instead of hanging below
+   it - a summary of the whole period should read as part of the period, not as
+   something appended after it. Larger than the header, because unlike the
+   header it is a thing you press. */
+.day-list-footer {
+  display: block;
   width: 100%;
-  margin-top: 18px;
-  padding: 13px;
-  background: transparent;
+  padding: 13px 10px;
+  background: var(--bg-panel);
   color: var(--text-mid);
-  border: 1px solid var(--border);
+  border: none;
+  font-family: inherit;
   font-size: 14px;
   letter-spacing: 2px;
+  text-align: center;
   cursor: pointer;
 }
 
-.report-card-button:hover,
-.report-card-button:active {
+.day-list-footer:hover,
+.day-list-footer:active {
   color: var(--text);
-  border-color: var(--border-bright);
+  background: var(--bg-elevated);
 }
 
 .report-card-screen .primary-button {

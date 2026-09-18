@@ -323,7 +323,7 @@ export const FAQ = {
                 {
                   "b": "EXPORT BACKUP"
                 },
-                " exists and why the app warns you rather than quietly starting over. The second is what the 294 automated checks that run before every single update are there to catch. Neither one reaches anything else on your phone."
+                " exists and why the app warns you rather than quietly starting over. The second is what the 296 automated checks that run before every single update are there to catch. Neither one reaches anything else on your phone."
               ]
             }
           ]
@@ -691,11 +691,11 @@ export const FAQ = {
             {
               "type": "p",
               "body": [
-                "Yes. Every period has a ",
+                "Yes. Every period's day list ends with a ",
                 {
                   "b": "REPORT CARD"
                 },
-                " button at the bottom of its screen — the current one and every finished one. Swipe back to a period, or tap its bar in Trends, and the button is underneath the day list."
+                " row — the current period and every finished one. Swipe back to a period, or tap its bar in Trends, then scroll to the bottom of the days and tap it."
               ]
             }
           ]

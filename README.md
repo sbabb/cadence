@@ -127,7 +127,7 @@ not a style guide; every rule in it describes a way the app can misbehave.
   Dismissing a keyboard you did not mean to summon recorded a spend for a day
   you had not touched. The rule it now holds to: an empty field is not an
   amount, while a deliberately typed `0` still is.
-- `scripts/verify-report.mjs` — 17 checks on the report card: what it says
+- `scripts/verify-report.mjs` — 19 checks on the report card: what it says
   about a period, and where that lands on the image it saves. The card is
   reachable for any period now rather than appearing once as a period closes,
   and it can leave the app as a PNG that outlives it — a screen you can
@@ -321,7 +321,7 @@ scripts/
   verify-bar.mjs       14 checks on the spend bar's geometry
   verify-stats.mjs     15 checks on the daily limit stat box
   verify-sheet.mjs     11 checks on the spend sheet's amount field
-  verify-report.mjs    17 checks on the report card and its image
+  verify-report.mjs    19 checks on the report card and its image
   verify-backup.mjs    27 backup-format checks, mostly rejections
   verify-sw.mjs        14 checks on offline, stalled and mid-deploy launches
   verify-backstack.mjs 19 checks on what the back button closes

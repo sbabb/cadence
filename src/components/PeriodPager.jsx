@@ -47,6 +47,10 @@ export default function PeriodPager({
     return buildPeriodSchedule(period, today, pastReconciled)
   }, [isActivePeriod, period, today, pastReconciled])
 
+  // The list renders the button; which period it opens is the pager's to
+  // know. Handing the list a bare callback keeps it ignorant of page indices.
+  const openReportCard = () => onOpenReportCard(viewIndex)
+
   const touchStartX = useRef(null)
   const touchStartY = useRef(null)
 
@@ -150,23 +154,18 @@ export default function PeriodPager({
           now={now}
           previousDayLimit={previousDayLimit}
           onLogForDate={onLogForDate}
+          onOpenReportCard={openReportCard}
           homeNonce={homeNonce}
         />
       ) : (
-        <PastPeriodView key={period.id} period={period} schedule={pastSchedule} reconciled={pastReconciled} />
+        <PastPeriodView
+          key={period.id}
+          period={period}
+          schedule={pastSchedule}
+          reconciled={pastReconciled}
+          onOpenReportCard={openReportCard}
+        />
       )}
-
-      {/* Below the period it belongs to, for every period, current or
-          finished. Putting it here rather than on the Trends chart is what
-          makes it need no period picker: whichever page you are on IS the
-          answer, and the pager already got you here. */}
-      <button
-        type="button"
-        className="report-card-button"
-        onClick={() => onOpenReportCard(viewIndex)}
-      >
-        REPORT CARD
-      </button>
     </div>
   )
 }

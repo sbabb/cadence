@@ -22,6 +22,7 @@ export default function Dashboard({
   now,
   previousDayLimit,
   onLogForDate,
+  onOpenReportCard,
   homeNonce
 }) {
   const [selectedDate, setSelectedDate] = useState(today)
@@ -227,6 +228,7 @@ export default function Dashboard({
         selectedDate={selectedDate}
         onSelectDay={setSelectedDate}
         onEditDay={handleEditDay}
+        onOpenReportCard={onOpenReportCard}
       />
     </div>
   )
