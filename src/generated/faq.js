@@ -323,7 +323,7 @@ export const FAQ = {
                 {
                   "b": "EXPORT BACKUP"
                 },
-                " exists and why the app warns you rather than quietly starting over. The second is what the 263 automated checks that run before every single update are there to catch. Neither one reaches anything else on your phone."
+                " exists and why the app warns you rather than quietly starting over. The second is what the 266 automated checks that run before every single update are there to catch. Neither one reaches anything else on your phone."
               ]
             }
           ]

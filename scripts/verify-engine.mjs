@@ -390,7 +390,12 @@ scenario('logging today reprices future days straight away, while today keeps th
   assert.equal(schedule.find((row) => row.date === '2026-08-10').dailyLimit, 34)
 })
 
-scenario('underspending today lifts the remaining days by the same mechanism', () => {
+// --- BUG: the repricing above runs one way only. An overspend is money that
+// is already gone, so the days after today must carry it immediately. An
+// UNDERspend is not money saved - today is still open and can still spend it -
+// so paying it forward mid-day quoted a promise the rest of the day could
+// take back, and left the day list visibly uneven while it did. ---
+scenario('an unspent surplus does not lift the remaining days while today can still spend it', () => {
   const period = {
     startDate: '2026-08-01',
     endDate: '2026-08-10',
@@ -399,9 +404,77 @@ scenario('underspending today lifts the remaining days by the same mechanism', (
   }
   const r = reconcilePeriod(period, '2026-08-01')
   assert.equal(r.todayInfo.dailyLimit, 50)
-  assert.equal(r.todayInfo.forwardDailyLimit, 55) // ceil(490/9) = 54.4 -> 55
+  // ceil(490/9) = 54.4 -> 55 is what the surplus WOULD be worth spread
+  // forward; it is not offered while today still has $40 of its own to spend.
+  assert.equal(r.todayInfo.forwardDailyLimit, 50)
   const schedule = buildPeriodSchedule(period, '2026-08-01', r)
-  assert.equal(schedule.find((row) => row.date === '2026-08-05').dailyLimit, 55)
+  assert.equal(schedule.find((row) => row.date === '2026-08-05').dailyLimit, 50)
+  assert.ok(
+    schedule.every((row) => row.dailyLimit === 50),
+    'every row of an untouched-but-underspent day one reads the same limit'
+  )
+})
+
+scenario('the surplus arrives at midnight, lifting the whole list together', () => {
+  const period = {
+    startDate: '2026-08-01',
+    endDate: '2026-08-10',
+    initialAmount: 500,
+    entries: [{ date: '2026-08-01', amount: 10 }]
+  }
+  // Same period, one day later: day one is finalized now, so the $40 it did
+  // not spend is genuinely banked and the divisor has dropped a day.
+  const r = reconcilePeriod(period, '2026-08-02')
+  assert.equal(r.todayInfo.dailyLimit, 55) // ceil(490/9)
+  assert.equal(r.todayInfo.forwardDailyLimit, 55)
+  const schedule = buildPeriodSchedule(period, '2026-08-02', r)
+  for (const row of schedule) {
+    if (row.date === '2026-08-01') assert.equal(row.dailyLimit, 50) // judged as it stood
+    else assert.equal(row.dailyLimit, 55)
+  }
+})
+
+scenario('the screenshot: day one of a $600 fortnight reads the same all the way down', () => {
+  // Reported from the phone: $6 logged by breakfast on the first day put $43
+  // against today and $46 against all thirteen days behind it.
+  const period = {
+    startDate: '2026-09-17',
+    endDate: '2026-09-30', // 14 days, $600 -> ceil(600/14) = $43
+    initialAmount: 600,
+    entries: [{ date: '2026-09-17', amount: 6 }]
+  }
+  const r = reconcilePeriod(period, '2026-09-17')
+  assert.equal(r.todayInfo.dailyLimit, 43)
+  assert.equal(r.todayInfo.remainingAfter, 594)
+  assert.equal(r.todayInfo.forwardDailyLimit, 43, 'the screenshot showed $46 here')
+  const schedule = buildPeriodSchedule(period, '2026-09-17', r)
+  assert.equal(schedule.length, 14)
+  assert.ok(
+    schedule.every((row) => row.dailyLimit === 43),
+    'the LIMIT column is even from the first row to the last'
+  )
+})
+
+scenario('no day after today is ever worth more than today is', () => {
+  // The whole rule in one line, swept across every spend a $500/10-day
+  // period can see - including the ones that put it underwater.
+  const period = {
+    startDate: '2026-08-01',
+    endDate: '2026-08-10',
+    initialAmount: 500
+  }
+  for (let spend = 0; spend <= 900; spend += 1) {
+    const r = reconcilePeriod({ ...period, entries: [{ date: '2026-08-03', amount: spend }] }, '2026-08-03')
+    const { dailyLimit, forwardDailyLimit } = r.todayInfo
+    assert.ok(
+      forwardDailyLimit <= dailyLimit,
+      `spending $${spend} left the days after today worth more than today`
+    )
+    // And when the spend really has cost the rest of the period, the drop is
+    // still passed on in full rather than being swallowed by the clamp.
+    const projected = projectNextDayLimit(r.todayInfo.remainingAfter, 10, 1)
+    if (projected < dailyLimit) assert.equal(forwardDailyLimit, projected)
+  }
 })
 
 scenario('an untracked PAST day is not repriced by what happened after it', () => {

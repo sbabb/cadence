@@ -101,7 +101,7 @@ in React itself: a value captured stale in a closure, an effect that re-runs
 when it shouldn't. `eslint.config.js` covers that gap and runs first. It is
 not a style guide; every rule in it describes a way the app can misbehave.
 
-- `scripts/verify-engine.mjs` — 77 scenarios over the algorithm above.
+- `scripts/verify-engine.mjs` — 80 scenarios over the algorithm above.
 - `scripts/verify-themes.mjs` — 97 contrast, colour-ramp and running-order
   checks for every theme. See *Themes* below for why this one isn't optional.
 - `scripts/verify-bar.mjs` — 14 checks on the spend bar's geometry, which lives
@@ -297,7 +297,7 @@ src/
 eslint.config.js       the React bugs the suites below cannot see
 scripts/
   build-faq.mjs        FAQ.md -> src/generated/faq.js, for the in-app FAQ
-  verify-engine.mjs    77 scenarios, run with plain node
+  verify-engine.mjs    80 scenarios, run with plain node
   verify-themes.mjs    97 colour checks, likewise
   verify-bar.mjs       14 checks on the spend bar's geometry
   verify-stats.mjs     15 checks on the daily limit stat box

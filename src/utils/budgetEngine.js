@@ -203,7 +203,25 @@ export function reconcilePeriod(period, todayStr) {
     //
     // Identical to `dailyLimit` until today is actually logged (same budget,
     // same divisor), so nothing changes on a day you have not touched yet.
-    todayInfo.forwardDailyLimit = projectNextDayLimit(runningBudget, totalDays, loggedDaysTotal)
+    //
+    // It only ever moves DOWN, though, and that asymmetry is deliberate. The
+    // argument above is an argument about a debt: money you have already spent
+    // is gone, so the days that follow should stop pretending otherwise. The
+    // mirror image is not true. Money you have NOT spent yet today is not a
+    // saving - the day is still open, and you may well spend it before
+    // midnight. Paying that surplus forward the instant the day's first
+    // purchase is logged put a higher figure against every remaining day than
+    // against today, so the first day of a fresh period read $43 while all
+    // thirteen days behind it read $46, purely because $6 of a $43 day had
+    // been spent by breakfast. Nothing had actually changed; the list was
+    // quoting a promise that the rest of the day could still take back.
+    //
+    // So a surplus waits for midnight, where it belongs: tomorrow today's
+    // entry is finalized, the divisor drops a day, and the whole list lifts
+    // together. Until then every remaining day shows the same limit today
+    // does, which is the even figure the period actually guarantees.
+    const projected = projectNextDayLimit(runningBudget, totalDays, loggedDaysTotal)
+    todayInfo.forwardDailyLimit = Math.min(dailyLimit, projected)
   }
 
   return {
@@ -260,7 +278,9 @@ export function summarizePeriod(period, reconciled) {
 //   the row falls on. A future day gets `forwardDailyLimit`: what a day is
 //   worth once today's spend is accounted for, so blowing today's limit
 //   visibly shrinks the rest of the period the moment it is logged rather
-//   than at midnight. An untracked PAST day gets today's own `dailyLimit`,
+//   than at midnight - while a surplus, which today can still spend, waits
+//   for midnight, leaving the column even. An untracked PAST day gets
+//   today's own `dailyLimit`,
 //   which is the closest thing to the target that applied back then - a day
 //   that has already gone cannot be repriced by what happened after it.
 //
