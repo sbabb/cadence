@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import useBudgetData from './hooks/useBudgetData'
 import usePersistentStorage from './hooks/usePersistentStorage.js'
-import useBackDismiss from './hooks/useBackDismiss.js'
+import useBackDismiss, { useBackStack } from './hooks/useBackDismiss.js'
 import { ThemeColorsContext } from './hooks/useThemeColors.js'
 import { applyTheme, getTheme, rampColorsFor } from './utils/themes.js'
 import { formatDisplayDateWithDay, daysBetweenInclusive, compareDateStr } from './utils/dateUtils.js'
@@ -105,6 +105,9 @@ export default function App() {
   const [showSettings, setShowSettings] = useState(false)
   // Opened from Settings and returns there, so the back stack stays honest.
   const [showFaq, setShowFaq] = useState(false)
+
+  // Built at mount, before any of the layers below can open - see the hook.
+  useBackStack()
 
   // What the back button closes, outermost first.
   //

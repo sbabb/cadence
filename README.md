@@ -144,7 +144,7 @@ not a style guide; every rule in it describes a way the app can misbehave.
   answered with a deploy-window error page. None of those reproduce on a fast
   desk connection, which is the whole reason they are asserted rather than
   tried.
-- `scripts/verify-backstack.mjs` — 19 checks on what the Android back button
+- `scripts/verify-backstack.mjs` — 21 checks on what the Android back button
   does. Every way this fails looks the same from the sofa ("I pressed back"),
   and the failure modes are opposites: too few history entries and back throws
   you out of the app mid-task, too many and it appears to do nothing several
@@ -324,7 +324,7 @@ scripts/
   verify-report.mjs    19 checks on the report card and its image
   verify-backup.mjs    27 backup-format checks, mostly rejections
   verify-sw.mjs        14 checks on offline, stalled and mid-deploy launches
-  verify-backstack.mjs 19 checks on what the back button closes
+  verify-backstack.mjs 21 checks on what the back button closes
 ```
 
 Everything is a pure recompute: the engine derives the whole period from its

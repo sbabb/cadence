@@ -41,6 +41,12 @@ export function createBackStack(history, { schedule } = {}) {
   let pending = false
   const defer = schedule || ((fn) => queueMicrotask(fn))
 
+  // True from the moment start() asks the browser to wind stale entries off
+  // until that traversal lands. The popstate it produces is ours, and reading
+  // it as the user pressing back is what used to close the first screen you
+  // opened after a reload - see start() and handlePopState below.
+  let winding = false
+
   // React can unmount several layers in a single commit - tapping the header
   // closes Settings and the FAQ together - and each cleanup would otherwise
   // fire its own history.go(-1). Two traversals racing each other is exactly
@@ -58,6 +64,11 @@ export function createBackStack(history, { schedule } = {}) {
   }
 
   function sync() {
+    // Nothing is pushed while the startup wind-back is in flight. An entry
+    // pushed into the middle of a traversal lands somewhere nobody asked for,
+    // and the layer that wanted it gets its entry the moment the traversal
+    // finishes instead.
+    if (winding) return
     const want = layers.length
     if (want === depth) return
     if (want > depth) {
@@ -98,6 +109,18 @@ export function createBackStack(history, { schedule } = {}) {
   function handlePopState(state) {
     const raw = state && state[DEPTH_KEY]
     const target = Number.isFinite(raw) && raw > 0 ? raw : 0
+
+    // Our own wind-back landing, not a back press. Nothing is dismissed: the
+    // entries this cleared belong to a session that ended at the reload, and
+    // any layer that opened while the traversal was in flight is still very
+    // much on screen and still needs an entry of its own.
+    if (winding) {
+      winding = false
+      depth = target
+      schedule_()
+      return
+    }
+
     depth = target
     while (layers.length > target) {
       const top = layers.pop()
@@ -118,7 +141,13 @@ export function createBackStack(history, { schedule } = {}) {
   function start() {
     const raw = history.state && history.state[DEPTH_KEY]
     const stale = Number.isFinite(raw) && raw > 0 ? raw : 0
-    if (stale > 0) history.go(-stale)
+    if (stale <= 0) return
+    winding = true
+    // The books are balanced BEFORE the traversal, for the same reason sync()
+    // does it: the popstate this causes arrives asynchronously and must find
+    // a counter that already agrees with where history is going.
+    depth = 0
+    history.go(-stale)
   }
 
   return {

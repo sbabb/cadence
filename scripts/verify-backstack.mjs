@@ -83,7 +83,13 @@ function createHarness({ initialEntries = [null] } = {}) {
       }
       if (next === index) return
       index = next
-      macro.push(() => onPop(entries[index]))
+      // The state is captured HERE, at the moment of landing, not when the
+      // event is delivered. A real popstate carries the entry the traversal
+      // arrived at; reading the list again later would let a push that
+      // happened in between rewrite history's account of where back went -
+      // which hid a real bug from this suite once.
+      const landed = entries[index]
+      macro.push(() => onPop(landed))
     }
   }
 
@@ -450,6 +456,42 @@ await check('entries left over from before a reload are wound off at startup', a
   h.pressBack()
   await h.settle()
   assert.equal(h.exits, 1, 'so the very first back press leaves, rather than doing nothing twice')
+})
+
+await check('the first screen opened after a reload is not closed by the wind-back', async () => {
+  // The bug this exists to stop, seen on a phone as "I tapped SETTINGS and
+  // nothing happened, then it worked the second time."
+  //
+  // The stack is built lazily, on the first useBackDismiss effect - which is
+  // the moment a screen OPENS, not app startup. So on a reload that left an
+  // entry behind, start()'s wind-back is fired with a layer already on its
+  // way up, and the popstate it causes used to be read as the user pressing
+  // back: it landed at depth 0 and dismissed the screen that had just opened.
+  const h = createHarness({ initialEntries: [null, { cadenceDepth: 1 }] })
+  h.stack.start() // getStack() - runs first, exactly as the hook does
+  h.show('settings') // ...then the layer registers
+  await h.settle()
+
+  assert.deepEqual(h.onScreen, ['settings'], 'the screen closed itself the instant it opened')
+  assert.equal(h.position, 1, 'and it should hold exactly one entry of its own')
+
+  // And back still works normally afterwards, rather than the app exiting.
+  h.pressBack()
+  await h.settle()
+  assert.deepEqual(h.onScreen, [], 'back should close it')
+  assert.equal(h.exits, 0, 'back should not have left the app')
+})
+
+await check('the wind-back still unwinds every stale entry, not just one', async () => {
+  const h = createHarness({ initialEntries: [null, { cadenceDepth: 1 }, { cadenceDepth: 2 }, { cadenceDepth: 3 }] })
+  h.stack.start()
+  h.show('settings')
+  await h.settle()
+  assert.deepEqual(h.onScreen, ['settings'])
+  assert.equal(h.position, 1, 'three stale entries should collapse to the one the screen owns')
+  h.pressBack()
+  await h.settle()
+  assert.equal(h.exits, 0)
 })
 
 await check('a history entry that is not ours is treated as depth zero', async () => {

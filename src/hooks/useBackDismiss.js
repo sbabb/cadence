@@ -46,6 +46,21 @@ function getStack() {
   return stack
 }
 
+// Builds the stack before anything is open, so the entries a reload left
+// behind are wound off while there is nothing on screen to disturb.
+//
+// Without this the stack was built lazily, by the first layer to register -
+// which meant the wind-back was fired with a screen already opening, and the
+// popstate it caused arrived underneath that screen. The stack survives that
+// now (see backStack.js), but not having the race at all is better than
+// handling it: called at mount, the traversal happens on an empty app exactly
+// as it was designed to.
+export function useBackStack() {
+  useEffect(() => {
+    getStack()
+  }, [])
+}
+
 export default function useBackDismiss(onDismiss, isOpen = true) {
   const latest = useRef(onDismiss)
   latest.current = onDismiss
