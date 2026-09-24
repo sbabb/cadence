@@ -10,7 +10,6 @@
 import js from '@eslint/js'
 import globals from 'globals'
 import reactHooks from 'eslint-plugin-react-hooks'
-import react from 'eslint-plugin-react'
 
 export default [
   { ignores: ['dist/**', 'node_modules/**'] },
@@ -24,18 +23,25 @@ export default [
       globals: globals.browser,
       parserOptions: { ecmaFeatures: { jsx: true } },
     },
-    plugins: { 'react-hooks': reactHooks, react },
+    plugins: { 'react-hooks': reactHooks },
     rules: {
       ...js.configs.recommended.rules,
-      ...reactHooks.configs.recommended.rules,
 
-      // Without this, every component is reported as an unused import: the
-      // base no-unused-vars rule reads plain JS and cannot see that <Dashboard
-      // /> is a use of `Dashboard`. This teaches it to look inside JSX.
-      'react/jsx-uses-vars': 'error',
+      // There used to be a react/jsx-uses-vars here, and eslint-plugin-react
+      // with it, because no-unused-vars could not see that <Dashboard /> is a
+      // use of `Dashboard`. ESLint 10 tracks JSX references itself, so the
+      // plugin had nothing left to do - and it was the one thing holding the
+      // project on an unsupported ESLint.
 
-      // The two that matter most here, both promoted to errors so a broken
-      // push fails rather than prints a warning nobody reads.
+      // Named one by one rather than spreading the plugin's recommended set.
+      // From v7 that set also carries the React Compiler's rules, which flag
+      // setState in effects and refs written during render - six places here,
+      // among them useBackDismiss, which is not code to reshape in passing.
+      // Whether to take those on is its own decision; upgrading the linter
+      // should not make it silently.
+      //
+      // These two matter most, both promoted to errors so a broken push fails
+      // rather than prints a warning nobody reads.
       'react-hooks/rules-of-hooks': 'error',
       'react-hooks/exhaustive-deps': 'error',
 
