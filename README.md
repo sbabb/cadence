@@ -81,7 +81,7 @@ a phone on the LAN address past the firewall.
 ```bash
 npm run build      # production build
 npm run preview    # serve the build
-npm run verify     # lint, FAQ freshness, then all four suites below
+npm run verify     # lint, FAQ freshness, then all nine suites below
 npm run lint       # eslint on its own
 npm run faq        # regenerate the in-app FAQ from FAQ.md
 ```
@@ -94,7 +94,7 @@ this codebase hands a string to `dangerouslySetInnerHTML`. `npm run verify`
 fails if `FAQ.md` has been edited without regenerating, so the document and the
 in-app copy cannot drift apart.
 
-The eight suites need no dependencies and run on plain node. They prove the
+The nine suites need no dependencies and run on plain node. They prove the
 *arithmetic* — that a paycheque on the 31st lands correctly in February — but
 they never mount a component, so they are blind to the class of bug that lives
 in React itself: a value captured stale in a closure, an effect that re-runs
@@ -305,7 +305,6 @@ src/
     motion.js          durations and easing curves, single source of truth
     dateUtils.js       'YYYY-MM-DD' date maths
     backStack.js       one history entry per open screen, for the back button
-  utils/
     backup.js          backup envelope, validation, summaries — DOM-free
     fileTransfer.js    saving a file out and reading one back in
   hooks/

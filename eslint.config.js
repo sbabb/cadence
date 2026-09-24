@@ -1,5 +1,5 @@
-// Flat ESLint config. The point of having this at all is narrow: the four
-// verify suites prove the ARITHMETIC is right - that a paycheque on the 31st
+// Flat ESLint config. The point of having this at all is narrow: the verify
+// suites prove the ARITHMETIC is right - that a paycheque on the 31st
 // lands correctly in February - but they never mount a component, so they are
 // blind to the class of bug that lives in React itself. A value captured stale
 // in a closure, an effect that re-runs when it shouldn't, a variable that is

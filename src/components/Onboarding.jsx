@@ -50,9 +50,11 @@ export default function Onboarding({ today, onComplete }) {
   const previewPeriod =
     !isManual && lastPaid && compareDateStr(lastPaid, today) <= 0
       ? derivePeriodContaining(lastPaid, cadence, today)
-      : isManual && lastPaid && manualEnd && compareDateStr(lastPaid, manualEnd) < 0
+      : isManual && lastPaid && manualEnd && compareDateStr(lastPaid, manualEnd) <= 0
         ? { startDate: lastPaid, endDate: manualEnd }
         : null
+
+  const previewDays = previewPeriod ? daysBetweenInclusive(previewPeriod.startDate, previewPeriod.endDate) : null
 
   const handleSubmit = (e) => {
     e.preventDefault()
@@ -202,8 +204,7 @@ export default function Onboarding({ today, onComplete }) {
         {previewPeriod && (
           <p className="setup-hint">
             This period: {formatDisplayDate(previewPeriod.startDate)} -&gt;{' '}
-            {formatDisplayDate(previewPeriod.endDate)} (
-            {daysBetweenInclusive(previewPeriod.startDate, previewPeriod.endDate)} days)
+            {formatDisplayDate(previewPeriod.endDate)} ({previewDays} {previewDays === 1 ? 'day' : 'days'})
           </p>
         )}
 

@@ -21,7 +21,9 @@ export default function PastPeriodView({ period, schedule, reconciled, onOpenRep
       <div className="stat-grid">
         <div className="stat-box">
           <div className="stat-label">TOTAL SPENT</div>
-          <div className="stat-value">{formatMoney(summary.totalSpent)}</div>
+          {/* No days logged is no figure, not $0 - the same rule the summary
+              and the report card follow for this same number. */}
+          <div className="stat-value">{summary.daysTracked === 0 ? '—' : formatMoney(summary.totalSpent)}</div>
         </div>
         <div className="stat-box">
           <div className="stat-label">TOTAL BUDGET</div>

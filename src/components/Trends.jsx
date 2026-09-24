@@ -13,8 +13,8 @@ import { formatDisplayDate, formatShortDate, daysBetweenInclusive } from '../uti
 // capped visually at 100% of the chart column (the numeric percentage
 // label above the bar carries the exact figure for anything that ran
 // over, so the color+number pairing - never color alone - stays accurate
-// even when a bar is clipped). Deliberately just a timeline: no
-// interactivity, no filtering, per the brief.
+// even when a bar is clipped). Deliberately just a timeline beyond that
+// one tap: no filtering, per the brief.
 export default function Trends({ periods, today, onJumpToPeriod, onBack }) {
   const referenceYear = Number(today.slice(0, 4))
 

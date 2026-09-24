@@ -102,7 +102,8 @@ export default function PeriodSetup({
     onStart({ initialAmount: amount, startDate, endDate })
   }
 
-  const datesValid = startDate && endDate && compareDateStr(startDate, endDate) < 0
+  // `<=`, because one day is a valid period - see handleSubmit.
+  const datesValid = startDate && endDate && compareDateStr(startDate, endDate) <= 0
   const periodLength = datesValid ? daysBetweenInclusive(startDate, endDate) : null
 
   return (
