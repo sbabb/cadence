@@ -102,7 +102,7 @@ when it shouldn't. `eslint.config.js` covers that gap and runs first. It is
 not a style guide; every rule in it describes a way the app can misbehave.
 
 - `scripts/verify-engine.mjs` — 80 scenarios over the algorithm above.
-- `scripts/verify-themes.mjs` — 124 contrast, colour-ramp and running-order
+- `scripts/verify-themes.mjs` — 197 contrast, colour-ramp and running-order
   checks for every theme. See *Themes* below for why this one isn't optional.
 - `scripts/verify-bar.mjs` — 14 checks on the spend bar's geometry, which lives
   in `src/utils/barScale.js` precisely so a script can reach it. The bar shipped
@@ -256,6 +256,17 @@ clear 3:1 on all three grounds. The dim greys were once held to 3:1 as
 which is why Tokyo Night's and Latte's greys are lighter and darker,
 respectively, than their published originals.
 
+Status colours used as *words* — a button label, an error, a day's figures
+in the list — are small text, so they need 4.5:1 too, which on a light
+ground is darker than a colour can be and still work as the bar. So each
+status colour has a `-text` twin: the same hue, darkened only as far as
+4.5:1 needs. Fills, borders, the bar and big figures take the colour; words
+take the twin; the suite reads `index.css` and fails if a rule paints text in
+a fill. In Tokyo Night the twins equal the fills. An input's edge gets its own
+`--border-field` at 3:1, since on an empty field it is the only sign there is
+somewhere to type, and a focused field thickens as well as turning blue, so
+focus is never shown by colour alone.
+
 A light ground is the hard case: a status colour has to clear 3:1 against the
 page and both panels, which forces it dark, while green, amber and red still
 have to be tellable apart from each other once they are. Slate's were picked by
@@ -328,7 +339,7 @@ eslint.config.js       the React bugs the suites below cannot see
 scripts/
   build-faq.mjs        FAQ.md -> src/generated/faq.js, for the in-app FAQ
   verify-engine.mjs    80 scenarios, run with plain node
-  verify-themes.mjs    124 colour checks, likewise
+  verify-themes.mjs    197 colour checks, likewise
   verify-bar.mjs       14 checks on the spend bar's geometry
   verify-stats.mjs     15 checks on the daily limit stat box
   verify-sheet.mjs     11 checks on the spend sheet's amount field

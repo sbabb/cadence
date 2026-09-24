@@ -24,6 +24,7 @@
 // for; being unreadable is not.
 
 import assert from 'node:assert/strict'
+import { readFileSync } from 'node:fs'
 import { THEMES, rampColorsFor } from '../src/utils/themes.js'
 import { hexToOklch, rampHex } from '../src/utils/color.js'
 
@@ -98,6 +99,27 @@ const GREY_STEP = 0.03
 // check below rather than being held to a ground they never touch.
 const ON_SCREEN_ACCENTS = ['green', 'amber', 'red', 'redDeep', 'teal', 'blue']
 
+// Each status colour's twin for use as words. A status colour as a fill, a
+// border or a 38px figure is "large" and needs 3:1; the same colour as a
+// 13px button label or a day's figures in the list needs 4.5:1, which on a
+// light ground it cannot reach and still work as a fill. So the stylesheet
+// paints text with these and nothing else - see the stylesheet check at the
+// bottom of this file.
+const TEXT_TWINS = [
+  ['green', 'greenText'],
+  ['amber', 'amberText'],
+  ['red', 'redText'],
+  ['teal', 'tealText'],
+  ['blue', 'blueText']
+]
+
+// Hue drift allowed between a colour and its text twin. Darkening in OKLCH
+// holds hue by construction; a twin that wanders further than this has
+// become a different colour, and the meaning goes with it.
+const TWIN_HUE_DRIFT = 8
+
+const UI_COMPONENT = 3.0 // WCAG 1.4.11: an input's edge, a focus indicator
+
 console.log('Verifying themes\n')
 
 for (const theme of THEMES) {
@@ -163,6 +185,58 @@ for (const theme of THEMES) {
       assert.ok(c >= LARGE_TEXT, `${key} ${t[key]} on ${t.bgElevated} is ${ratio(c)}, needs ${LARGE_TEXT}:1`)
     })
   }
+
+  // 3b. The text twins: 4.5:1 on every ground, the same colour as the fill
+  //     they stand in for, and still green, amber and red to the eye - told
+  //     apart from each other and from plain text, or colour has stopped
+  //     meaning anything once it is small.
+  for (const [fill, twin] of TEXT_TWINS) {
+    for (const [groundName, ground] of grounds) {
+      check(`${theme.id}: ${twin} on ${groundName}`, () => {
+        const c = contrast(t[twin], ground)
+        assert.ok(c >= BODY_TEXT, `${twin} ${t[twin]} on ${groundName} ${ground} is ${ratio(c)}, needs ${BODY_TEXT}:1`)
+      })
+    }
+    check(`${theme.id}: ${twin} is still ${fill}`, () => {
+      let d = Math.abs(hexToOklch(t[twin]).h - hexToOklch(t[fill]).h)
+      if (d > 180) d = 360 - d
+      assert.ok(d <= TWIN_HUE_DRIFT, `${twin} ${t[twin]} is ${d.toFixed(1)}deg of hue away from ${fill} ${t[fill]}`)
+    })
+  }
+  check(`${theme.id}: green / amber / red text stay distinct, and distinct from text`, () => {
+    const pairs = [
+      ['greenText', 'amberText'],
+      ['amberText', 'redText'],
+      ['greenText', 'redText'],
+      ['greenText', 'text'],
+      ['amberText', 'text'],
+      ['redText', 'text']
+    ]
+    for (const [a, b] of pairs) {
+      const d = perceptualDistance(t[a], t[b])
+      assert.ok(d >= 0.1, `${a} ${t[a]} and ${b} ${t[b]} are only ${d.toFixed(3)} apart in Oklab`)
+    }
+  })
+
+  // 3c. An input's edge is the only thing that says "type here" on an empty
+  //     field, so it is held to 3:1 against the page and the panel - the two
+  //     grounds a field sits on or is filled with. And focus has to be a
+  //     visible change: the blue ring against every ground, and far enough
+  //     from the resting edge that turning blue reads as something happening.
+  check(`${theme.id}: an input's edge clears ${UI_COMPONENT}:1`, () => {
+    for (const [groundName, ground] of [['bg', t.bg], ['bg-panel', t.bgPanel]]) {
+      const c = contrast(t.borderField, ground)
+      assert.ok(c >= UI_COMPONENT, `border-field ${t.borderField} on ${groundName} ${ground} is ${ratio(c)}`)
+    }
+  })
+  check(`${theme.id}: the focus colour is visible, and a change from the resting edge`, () => {
+    for (const [groundName, ground] of grounds) {
+      const c = contrast(t.blue, ground)
+      assert.ok(c >= UI_COMPONENT, `focus blue ${t.blue} on ${groundName} ${ground} is ${ratio(c)}`)
+    }
+    const d = perceptualDistance(t.blue, t.borderField)
+    assert.ok(d >= 0.1, `focus blue and border-field are only ${d.toFixed(3)} apart in Oklab`)
+  })
 
   // 4. Green, amber and red have to be told apart FROM EACH OTHER, not just
   //    from the background. A theme where amber and red both land on burnt
@@ -299,6 +373,49 @@ check('adjacent themes are visibly different from each other', () => {
       c >= 1.15,
       `${a.id} and ${b.id} backgrounds are only ${ratio(c)} apart - they will read as the same choice`
     )
+  }
+})
+
+// --- the stylesheet ------------------------------------------------------
+//
+// The token rules above are only half of it: a perfect -text twin does nothing
+// if a rule still paints words with the fill. These read index.css itself.
+
+const CSS = readFileSync(new URL('../src/index.css', import.meta.url), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '')
+const RULES = [...CSS.matchAll(/([^{}]+)\{([^{}]*)\}/g)].map((m) => ({ selector: m[1].trim().replace(/\s+/g, ' '), body: m[2] }))
+const STATUS = '(green|amber|red|teal|blue)'
+
+check('no text is painted in a status fill - words use the -text twins', () => {
+  const offenders = RULES.filter((r) => new RegExp(`(^|[^-\\w])color:\\s*var\\(--${STATUS}\\)`).test(r.body))
+  assert.equal(offenders.length, 0, `color: uses a fill in ${offenders.map((r) => r.selector).join(' | ')}`)
+})
+
+check('no text sits on a status fill - filled states use the -text twins', () => {
+  const offenders = RULES.filter(
+    (r) => new RegExp(`background:\\s*var\\(--${STATUS}\\)`).test(r.body) && /(^|[^-\w])color:/.test(r.body)
+  )
+  assert.equal(offenders.length, 0, `text on a fill in ${offenders.map((r) => r.selector).join(' | ')}`)
+})
+
+check("every input's edge is --border-field", () => {
+  for (const selector of [".field input[type='date']", '.amount-input-row', '.log-spend-input-row']) {
+    const rule = RULES.find((r) => r.selector === selector)
+    assert.ok(rule, `no rule for ${selector}`)
+    assert.match(rule.body, /border:\s*1px solid var\(--border-field\)/, `${selector} does not use --border-field`)
+  }
+})
+
+// index.css repeats Tokyo Night on :root as the paint before main.jsx applies
+// a theme. A token changed in themes.js and not there shows the old colour
+// for a frame - or for good, if it is a token applyTheme never writes.
+check(':root defaults match Tokyo Night', () => {
+  const root = RULES.find((r) => r.selector === ':root')
+  const tokyo = THEMES.find((th) => th.id === 'tokyo-night').tokens
+  const vars = Object.fromEntries([...root.body.matchAll(/--([\w-]+):\s*([^;]+);/g)].map((m) => [m[1], m[2].trim().toLowerCase()]))
+  const camel = (k) => k.replace(/[A-Z]/g, (ch) => `-${ch.toLowerCase()}`)
+  for (const [key, value] of Object.entries(tokyo)) {
+    if (!value.startsWith('#')) continue
+    assert.equal(vars[camel(key)], value.toLowerCase(), `:root --${camel(key)} is ${vars[camel(key)]}, Tokyo Night says ${value}`)
   }
 })
 

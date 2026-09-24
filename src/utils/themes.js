@@ -29,7 +29,7 @@
 // imported file, so a user or a backup still naming one of them lands on Tokyo
 // Night rather than on an error.
 //
-// Four structural rules every theme has to keep, or the UI stops making
+// Five structural rules every theme has to keep, or the UI stops making
 // sense:
 //   - bg / bg-panel / bg-elevated must be visibly separable, in that order of
 //     prominence. On light themes that means panels get DARKER, not lighter;
@@ -40,6 +40,13 @@
 //     still have to read as three steps, dim < mid < text.
 //   - green / amber / red must be distinguishable side by side, and clear 3:1
 //     on all three grounds. They carry meaning; they are not decoration.
+//   - each status colour has a -text twin for when it is used as WORDS, which
+//     is most of the time: a button label, an error, a day's figures in the
+//     list. Those are small, so AA wants 4.5:1, and on a light ground that is
+//     darker than the colour can be and still work as the bar or a border. So
+//     fills, borders, the bar and big figures take the colour; text takes its
+//     -text twin. Where the colour already clears 4.5 - all of Tokyo Night -
+//     the twin is the same value.
 //   - red-deep must actually be deeper than red. The bar's overage colour
 //     interpolates toward it, and a "deep" red that's lighter than the red it
 //     starts from would run the ramp backwards.
@@ -53,6 +60,7 @@ const TOKEN_VARS = {
   bgElevated: '--bg-elevated',
   border: '--border',
   borderBright: '--border-bright',
+  borderField: '--border-field',
   text: '--text',
   textMid: '--text-mid',
   textDim: '--text-dim',
@@ -62,6 +70,11 @@ const TOKEN_VARS = {
   redDeep: '--red-deep',
   teal: '--teal',
   blue: '--blue',
+  greenText: '--green-text',
+  amberText: '--amber-text',
+  redText: '--red-text',
+  tealText: '--teal-text',
+  blueText: '--blue-text',
   cyan: '--cyan',
   purple: '--purple',
   orange: '--orange',
@@ -81,6 +94,12 @@ export const THEMES = [
       bgElevated: '#292e42',
       border: '#2f3549',
       borderBright: '#3b4261',
+      // The outline of an input. Kept apart from border-bright, which is also
+      // hover borders, dashed dividers and a disabled arrow's colour - raising
+      // that to 3:1 would make all of those shout. An empty field has nothing
+      // else to show where it is, so its edge alone is held to WCAG's 3:1 for
+      // UI components, against the page and the panel it sits on.
+      borderField: '#666e90',
       text: '#c0caf5',
       // Lifted from the published #787c99 / #636c97, which read at 3.3:1 and
       // 2.6:1 on the elevated panel - fine for a code editor's comments, not
@@ -93,6 +112,13 @@ export const THEMES = [
       redDeep: '#db4b4b',
       teal: '#73daca',
       blue: '#7aa2f7',
+      // Every accent here already clears 4.5:1 on all three grounds, so the
+      // text twins are the fills themselves.
+      greenText: '#9ece6a',
+      amberText: '#e0af68',
+      redText: '#f7768e',
+      tealText: '#73daca',
+      blueText: '#7aa2f7',
       cyan: '#7dcfff',
       purple: '#bb9af7',
       orange: '#ff9e64',
@@ -123,6 +149,7 @@ export const THEMES = [
       bgElevated: '#bababa',
       border: '#9c9c9c',
       borderBright: '#7a7a7a',
+      borderField: '#6c6c6c',
       text: '#1c1c1c',
       textMid: '#383838',
       textDim: '#4a4a4a',
@@ -146,6 +173,16 @@ export const THEMES = [
       redDeep: '#8c172c',
       teal: '#1e6464',
       blue: '#175098',
+      // Same hue as each fill, darkened only as far as 4.5:1 on the elevated
+      // panel needs. That is a long way on a mid-grey ground: amber in
+      // particular lands close to olive here, the brown the note above
+      // warns about. It is the price of small amber text being readable on
+      // #bababa at all; the bar and the big figures keep the brighter fill.
+      greenText: '#005716',
+      amberText: '#624501',
+      redText: '#940e2c',
+      tealText: '#035354',
+      blueText: '#0e4990',
       cyan: '#1b5a75',
       purple: '#6d3d8d',
       orange: '#8e3518',
@@ -171,6 +208,7 @@ export const THEMES = [
       bgElevated: '#dce0e8',
       border: '#bcc0cc',
       borderBright: '#9ca0b0',
+      borderField: '#7f8392',
       text: '#4c4f69',
       // Darkened from the published #6c6f85 / #808395, which fell to 3.7:1
       // and 2.8:1 on the elevated panel. Latte's own text is only 6:1 there,
@@ -189,6 +227,13 @@ export const THEMES = [
       redDeep: '#a10b2c',
       teal: '#168d94',
       blue: '#1e66f5',
+      // Same hue as each fill, darkened only as far as 4.5:1 on the elevated
+      // panel needs - which on Latte's pale grounds is a shade, not a stop.
+      greenText: '#1d7201',
+      amberText: '#8b5702',
+      redText: '#c70234',
+      tealText: '#046e74',
+      blueText: '#0c56e4',
       cyan: '#0c8dc0',
       purple: '#8839ef',
       orange: '#e05a0b',

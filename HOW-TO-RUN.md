@@ -45,7 +45,7 @@ app.
 | What you want | Command |
 | --- | --- |
 | Run the app for everyday use | `npm run dev` |
-| Check nothing is broken (lint + 327 checks) | `npm run verify` |
+| Check nothing is broken (lint + 400 checks) | `npm run verify` |
 | Update the in-app FAQ after editing FAQ.md | `npm run faq` |
 | Make the real production build | `npm run build` |
 | Look at that production build | `npm run preview` |

@@ -18,8 +18,10 @@ const COLOR_VARS = {
   text: '--text',
   dim: '--text-dim',
   border: '--border',
-  good: '--green',
-  over: '--red',
+  // The verdict line is words, so it takes the status colours' text shades -
+  // the same 4.5:1 rule the screen follows, on the image that leaves it.
+  good: '--green-text',
+  over: '--red-text',
   neutral: '--text'
 }
 

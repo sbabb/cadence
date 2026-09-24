@@ -26,6 +26,7 @@
 
   --border: #2f3549;
   --border-bright: #3b4261;
+  --border-field: #666e90;
 
   --text: #c0caf5;
   --text-mid: #abadbf;
@@ -40,6 +41,14 @@
   --cyan: #7dcfff;
   --purple: #bb9af7;
   --orange: #ff9e64;
+
+  /* Status colours as words - see themes.js. Tokyo Night's already clear
+     4.5:1, so here they repeat the fills. */
+  --green-text: #9ece6a;
+  --amber-text: #e0af68;
+  --red-text: #f7768e;
+  --teal-text: #73daca;
+  --blue-text: #7aa2f7;
 
   /* The over-budget track tint and the modal scrims. Both used to be literals
      further down the file, which made them the two things a light theme
@@ -140,7 +149,7 @@ input, button, select, textarea {
 
 .ascii-header:hover,
 .ascii-header:active {
-  color: var(--blue);
+  color: var(--blue-text);
   border-bottom-color: var(--border-bright);
 }
 
@@ -160,7 +169,7 @@ input, button, select, textarea {
 
 .setup-message {
   margin: 0 0 4px 0;
-  color: var(--amber);
+  color: var(--amber-text);
   font-size: 15px;
 }
 
@@ -185,13 +194,20 @@ input, button, select, textarea {
 .field input[type='date'] {
   background: var(--bg-panel);
   color: var(--text);
-  border: 1px solid var(--border);
+  /* --border-field, not --border: an input's edge is the only thing that says
+     "type here", so it is held to WCAG's 3:1 for UI components. */
+  border: 1px solid var(--border-field);
   padding: 10px;
   font-size: 17px;
 }
 
 .field input[type='date']:focus {
   border-color: var(--blue);
+  /* Thickens as well as turns blue, so focus is not shown by a change of
+     colour alone - the edge was already a mid grey, and grey-to-blue at one
+     pixel is a change some colour-blind users simply do not see. Two pixels
+     matches the :focus-visible ring everything else gets. */
+  box-shadow: 0 0 0 1px var(--blue);
 }
 
 .date-input-row {
@@ -236,13 +252,14 @@ input, button, select, textarea {
 .amount-input-row {
   display: flex;
   align-items: center;
-  border: 1px solid var(--border);
+  border: 1px solid var(--border-field);
   background: var(--bg-panel);
   padding: 0 10px;
 }
 
 .amount-input-row:focus-within {
   border-color: var(--blue);
+  box-shadow: 0 0 0 1px var(--blue);
 }
 
 .dollar-sign {
@@ -269,14 +286,14 @@ input, button, select, textarea {
 }
 
 .error-text {
-  color: var(--red);
+  color: var(--red-text);
   font-size: 14px;
   margin: 0;
 }
 
 .primary-button {
   background: transparent;
-  color: var(--green);
+  color: var(--green-text);
   border: 1px solid var(--green);
   padding: 13px;
   font-size: 16px;
@@ -287,7 +304,7 @@ input, button, select, textarea {
 
 .primary-button:hover:not(:disabled),
 .primary-button:active:not(:disabled) {
-  background: var(--green);
+  background: var(--green-text);
   color: var(--bg);
 }
 
@@ -402,7 +419,7 @@ input, button, select, textarea {
 
 .stat-value.negative,
 .negative {
-  color: var(--red);
+  color: var(--red-text);
 }
 
 /* Only rendered on the days the limit actually moved. */
@@ -437,11 +454,11 @@ input, button, select, textarea {
    down: a smaller limit after a big day is a consequence, not a failure, and
    red is reserved for actually being over. */
 .stat-delta-up {
-  color: var(--green);
+  color: var(--green-text);
 }
 
 .stat-delta-down {
-  color: var(--amber);
+  color: var(--amber-text);
 }
 
 /* Every box carries a line in this slot now, so the panel reads as one even
@@ -467,15 +484,15 @@ input, button, select, textarea {
    between them. "in period" and the steady-limit notes stay dim, because they
    say the same thing every day and colour would be noise. */
 .stat-sub-under {
-  color: var(--green);
+  color: var(--green-text);
 }
 
 .stat-sub-even {
-  color: var(--amber);
+  color: var(--amber-text);
 }
 
 .stat-sub-over {
-  color: var(--red);
+  color: var(--red-text);
 }
 
 /* The REMAINING box becomes a button on the final day, holding the
@@ -489,7 +506,7 @@ input, button, select, textarea {
 }
 
 .stat-box-tappable .stat-label {
-  color: var(--amber);
+  color: var(--amber-text);
 }
 
 /* ---------- Spend bar ---------- */
@@ -618,7 +635,7 @@ input, button, select, textarea {
 }
 
 .bar-label-date {
-  color: var(--blue);
+  color: var(--blue-text);
   margin-left: 6px;
 }
 
@@ -696,7 +713,7 @@ input, button, select, textarea {
   position: absolute;
   top: 0;
   transform: translateX(-50%);
-  color: var(--amber);
+  color: var(--amber-text);
 }
 
 /* Width and colour are driven from JavaScript, so there is deliberately no
@@ -779,7 +796,7 @@ input, button, select, textarea {
 }
 
 .dial-over-note strong {
-  color: var(--amber);
+  color: var(--amber-text);
   font-weight: 500;
 }
 
@@ -792,7 +809,7 @@ input, button, select, textarea {
    the max-height - generous enough for the text at any width. */
 .last-day-note {
   border: 0 solid var(--amber);
-  color: var(--amber);
+  color: var(--amber-text);
   background: var(--bg-panel);
   font-size: 13px;
   line-height: 1.5;
@@ -875,21 +892,21 @@ input, button, select, textarea {
 }
 
 .day-row-under {
-  color: var(--green);
+  color: var(--green-text);
 }
 
 .day-row-over {
-  color: var(--red);
+  color: var(--red-text);
 }
 
 .day-row-atlimit {
-  color: var(--amber);
+  color: var(--amber-text);
 }
 
 /* A deliberate $0 log - a positive achievement worth acknowledging in its own
    right, distinct from both "unlogged" and "spent something under limit". */
 .day-row-zero {
-  color: var(--teal);
+  color: var(--teal-text);
 }
 
 .day-row-clickable {
@@ -978,7 +995,7 @@ input, button, select, textarea {
 }
 
 .confirm-dialog-danger .confirm-message {
-  color: var(--red);
+  color: var(--red-text);
 }
 
 .confirm-actions {
@@ -994,7 +1011,7 @@ input, button, select, textarea {
 .confirm-button {
   flex: 1;
   background: transparent;
-  color: var(--green);
+  color: var(--green-text);
   border: 1px solid var(--green);
   padding: 11px;
   font-size: 15px;
@@ -1004,18 +1021,18 @@ input, button, select, textarea {
 
 .confirm-button:hover,
 .confirm-button:active {
-  background: var(--green);
+  background: var(--green-text);
   color: var(--bg);
 }
 
 .confirm-button-danger {
-  color: var(--red);
+  color: var(--red-text);
   border-color: var(--red);
 }
 
 .confirm-button-danger:hover,
 .confirm-button-danger:active {
-  background: var(--red);
+  background: var(--red-text);
   color: var(--bg);
 }
 
@@ -1100,13 +1117,14 @@ input, button, select, textarea {
 .log-spend-input-row {
   display: flex;
   align-items: center;
-  border: 1px solid var(--border);
+  border: 1px solid var(--border-field);
   background: var(--bg);
   padding: 0 12px;
 }
 
 .log-spend-input-row:focus-within {
   border-color: var(--blue);
+  box-shadow: 0 0 0 1px var(--blue);
 }
 
 .log-spend-input-row input {
@@ -1198,7 +1216,7 @@ input, button, select, textarea {
   background: transparent;
   border: none;
   font-family: inherit;
-  color: var(--blue);
+  color: var(--blue-text);
   border-bottom: 1px dashed var(--border-bright);
   cursor: pointer;
   padding: 2px 4px;
@@ -1300,7 +1318,7 @@ input, button, select, textarea {
 }
 
 .assessment-good {
-  color: var(--green);
+  color: var(--green-text);
   border-color: var(--green);
 }
 
@@ -1310,7 +1328,7 @@ input, button, select, textarea {
 }
 
 .assessment-over {
-  color: var(--red);
+  color: var(--red-text);
   border-color: var(--red);
 }
 
@@ -1502,7 +1520,7 @@ input, button, select, textarea {
 }
 
 .settings-saved-text {
-  color: var(--green);
+  color: var(--green-text);
   font-size: 14px;
   margin: 0;
 }
@@ -1548,7 +1566,7 @@ input, button, select, textarea {
 .backup-button {
   flex: 1;
   background: transparent;
-  color: var(--blue);
+  color: var(--blue-text);
   border: 1px solid var(--blue);
   padding: 11px 8px;
   font-size: 13px;
@@ -1558,7 +1576,7 @@ input, button, select, textarea {
 
 .backup-button:hover,
 .backup-button:active {
-  background: var(--blue);
+  background: var(--blue-text);
   color: var(--bg);
 }
 
@@ -1585,14 +1603,14 @@ input, button, select, textarea {
 }
 
 .storage-status-ok {
-  color: var(--green);
+  color: var(--green-text);
 }
 
 .storage-recheck {
   background: transparent;
   border: none;
   border-bottom: 1px solid var(--blue);
-  color: var(--blue);
+  color: var(--blue-text);
   font-family: inherit;
   font-size: 12px;
   letter-spacing: 1px;
@@ -1621,7 +1639,7 @@ input, button, select, textarea {
 
 .abandon-period-button {
   background: transparent;
-  color: var(--red);
+  color: var(--red-text);
   border: 1px solid var(--red);
   padding: 11px;
   font-size: 14px;
@@ -1631,7 +1649,7 @@ input, button, select, textarea {
 
 .abandon-period-button:hover,
 .abandon-period-button:active {
-  background: var(--red);
+  background: var(--red-text);
   color: var(--bg);
 }
 
@@ -1663,7 +1681,7 @@ input, button, select, textarea {
 
 .selection-note {
   font-size: 13px;
-  color: var(--blue);
+  color: var(--blue-text);
   letter-spacing: 0.3px;
   text-align: center;
   margin: 0 0 12px 0;
@@ -1735,7 +1753,7 @@ input, button, select, textarea {
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 1px;
-  color: var(--red);
+  color: var(--red-text);
   margin-bottom: 3px;
 }
 
@@ -1761,7 +1779,7 @@ input, button, select, textarea {
 .storage-warning-dismiss:hover,
 .storage-warning-dismiss:active {
   border-color: var(--red);
-  color: var(--red);
+  color: var(--red-text);
 }
 
 /* ---------- Theme picker ---------- */
