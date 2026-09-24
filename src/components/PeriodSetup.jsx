@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useId, useRef, useState } from 'react'
 import { compareDateStr, formatDisplayDate, daysBetweenInclusive } from '../utils/dateUtils.js'
 import { findOverlappingPeriod } from '../utils/budgetEngine.js'
 
@@ -28,6 +28,13 @@ export default function PeriodSetup({
 
   const startDateRef = useRef(null)
   const endDateRef = useRef(null)
+
+  // The visible caption is the date field's <label>, tied to it by id, so a
+  // screen reader announces "Pay period start date" rather than just "date".
+  // Not the whole row wrapped in a <label>: that would fold PICK DATE's text
+  // into the field's name as well.
+  const startDateId = useId()
+  const endDateId = useId()
 
   // Native date inputs render their calendar affordance as a tiny icon
   // that's easy to miss, especially on mobile. Give each field an explicit
@@ -135,9 +142,10 @@ export default function PeriodSetup({
         </label>
 
         <div className="field">
-          <span className="field-label">PAY PERIOD START DATE</span>
+          <label className="field-label" htmlFor={startDateId}>PAY PERIOD START DATE</label>
           <div className="date-input-row">
             <input
+              id={startDateId}
               ref={startDateRef}
               type="date"
               value={startDate}
@@ -147,6 +155,7 @@ export default function PeriodSetup({
               type="button"
               className="date-picker-button"
               onClick={() => openPicker(startDateRef)}
+              aria-label="Pick date: pay period start date"
             >
               📅 PICK DATE
             </button>
@@ -154,9 +163,10 @@ export default function PeriodSetup({
         </div>
 
         <div className="field">
-          <span className="field-label">PAY PERIOD END DATE</span>
+          <label className="field-label" htmlFor={endDateId}>PAY PERIOD END DATE</label>
           <div className="date-input-row">
             <input
+              id={endDateId}
               ref={endDateRef}
               type="date"
               value={endDate}
@@ -166,6 +176,7 @@ export default function PeriodSetup({
               type="button"
               className="date-picker-button"
               onClick={() => openPicker(endDateRef)}
+              aria-label="Pick date: pay period end date"
             >
               📅 PICK DATE
             </button>

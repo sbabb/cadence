@@ -102,7 +102,7 @@ when it shouldn't. `eslint.config.js` covers that gap and runs first. It is
 not a style guide; every rule in it describes a way the app can misbehave.
 
 - `scripts/verify-engine.mjs` — 80 scenarios over the algorithm above.
-- `scripts/verify-themes.mjs` — 97 contrast, colour-ramp and running-order
+- `scripts/verify-themes.mjs` — 124 contrast, colour-ramp and running-order
   checks for every theme. See *Themes* below for why this one isn't optional.
 - `scripts/verify-bar.mjs` — 14 checks on the spend bar's geometry, which lives
   in `src/utils/barScale.js` precisely so a script can reach it. The bar shipped
@@ -247,8 +247,17 @@ along a theme's actual 0–200% colour ramp dips below 3:1 or desaturates toward
 grey, and that the palettes run darkest to lightest with no two adjacent ones
 close enough to read as the same choice.
 
-A light ground is the hard case: a status colour has to clear 3:1 against both
-the page and a panel, which forces it dark, while green, amber and red still
+The floors are WCAG 2.1 AA. Every grey carries words, so text, text-mid and
+text-dim all clear 4.5:1 on the page, a panel and the elevated panel, and must
+still read as three distinct steps. Status colours are large figures, so they
+clear 3:1 on all three grounds. The dim greys were once held to 3:1 as
+"secondary" text; an accessibility audit found the most-used label colour at
+2.6:1 on the elevated panel, so the floor went up and the tokens with it —
+which is why Tokyo Night's and Latte's greys are lighter and darker,
+respectively, than their published originals.
+
+A light ground is the hard case: a status colour has to clear 3:1 against the
+page and both panels, which forces it dark, while green, amber and red still
 have to be tellable apart from each other once they are. Slate's were picked by
 searching OKLCH for the most separable set inside that band rather than by eye,
 then pulled back off the gamut edge so they suit a colourless ground.
@@ -319,7 +328,7 @@ eslint.config.js       the React bugs the suites below cannot see
 scripts/
   build-faq.mjs        FAQ.md -> src/generated/faq.js, for the in-app FAQ
   verify-engine.mjs    80 scenarios, run with plain node
-  verify-themes.mjs    97 colour checks, likewise
+  verify-themes.mjs    124 colour checks, likewise
   verify-bar.mjs       14 checks on the spend bar's geometry
   verify-stats.mjs     15 checks on the daily limit stat box
   verify-sheet.mjs     11 checks on the spend sheet's amount field

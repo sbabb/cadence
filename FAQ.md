@@ -125,7 +125,7 @@ page tells nobody anything.
 **So what is the worst that could realistically happen?**
 Your Cadence history gets corrupted or lost, or a daily limit comes out wrong.
 The first is why **EXPORT BACKUP** exists and why the app warns you rather than
-quietly starting over. The second is what the 300 automated checks that run
+quietly starting over. The second is what the 327 automated checks that run
 before every single update are there to catch. Neither one reaches anything
 else on your phone.
 

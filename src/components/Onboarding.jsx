@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useId, useRef, useState } from 'react'
 import { compareDateStr, formatDisplayDate, daysBetweenInclusive } from '../utils/dateUtils.js'
 import { CADENCE_OPTIONS, DEFAULT_CADENCE, derivePeriodContaining } from '../utils/cadence.js'
 
@@ -24,6 +24,12 @@ export default function Onboarding({ today, onComplete }) {
 
   const lastPaidRef = useRef(null)
   const manualEndRef = useRef(null)
+
+  // Captions tied to their date fields, and the "already received" hint read
+  // out with the first one - see PeriodSetup for why not a wrapping <label>.
+  const lastPaidId = useId()
+  const lastPaidHintId = useId()
+  const manualEndId = useId()
 
   const openPicker = (ref) => {
     const el = ref.current
@@ -131,23 +137,32 @@ export default function Onboarding({ today, onComplete }) {
           having entered the NEXT payday rather than the last one. */}
       <form className="setup-form" onSubmit={handleSubmit} noValidate>
         <div className="field">
-          <span className="field-label">
+          <label className="field-label" htmlFor={lastPaidId}>
             {isManual ? '1 — WHEN DOES THIS PERIOD START?' : '1 — WHEN WERE YOU LAST PAID?'}
-          </span>
+          </label>
           <div className="date-input-row">
             <input
+              id={lastPaidId}
               ref={lastPaidRef}
               type="date"
               max={today}
+              aria-describedby={isManual ? undefined : lastPaidHintId}
               value={lastPaid}
               onChange={(e) => setLastPaid(e.target.value)}
             />
-            <button type="button" className="date-picker-button" onClick={() => openPicker(lastPaidRef)}>
+            <button
+              type="button"
+              className="date-picker-button"
+              onClick={() => openPicker(lastPaidRef)}
+              aria-label={isManual ? 'Pick date: period start' : 'Pick date: last payday'}
+            >
               PICK DATE
             </button>
           </div>
           {!isManual && (
-            <span className="field-hint">The payday you already received, not your next one.</span>
+            <span id={lastPaidHintId} className="field-hint">
+              The payday you already received, not your next one.
+            </span>
           )}
         </div>
 
@@ -170,15 +185,21 @@ export default function Onboarding({ today, onComplete }) {
 
         {isManual && (
           <div className="field">
-            <span className="field-label">WHEN DOES IT END?</span>
+            <label className="field-label" htmlFor={manualEndId}>WHEN DOES IT END?</label>
             <div className="date-input-row">
               <input
+                id={manualEndId}
                 ref={manualEndRef}
                 type="date"
                 value={manualEnd}
                 onChange={(e) => setManualEnd(e.target.value)}
               />
-              <button type="button" className="date-picker-button" onClick={() => openPicker(manualEndRef)}>
+              <button
+                type="button"
+                className="date-picker-button"
+                onClick={() => openPicker(manualEndRef)}
+                aria-label="Pick date: period end"
+              >
                 PICK DATE
               </button>
             </div>

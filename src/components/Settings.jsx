@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useId, useRef, useState } from 'react'
 import { formatDisplayDate } from '../utils/dateUtils.js'
 import { CADENCE_OPTIONS } from '../utils/cadence.js'
 import { entriesOutsideRange } from '../utils/budgetEngine.js'
@@ -42,6 +42,8 @@ export default function Settings({
   const [hideConfirm, setHideConfirm] = useState(null)
 
   const endDateRef = useRef(null)
+  // Ties the visible caption to the date field - see PeriodSetup.
+  const endDateId = useId()
   const fileInputRef = useRef(null)
 
   // Backup state, kept apart from the period-editing state above: they are
@@ -191,10 +193,15 @@ export default function Settings({
           </label>
 
           <div className="field">
-            <span className="field-label">PAY PERIOD END DATE</span>
+            <label className="field-label" htmlFor={endDateId}>PAY PERIOD END DATE</label>
             <div className="date-input-row">
-              <input ref={endDateRef} type="date" value={endDate} onChange={handleEndDateChange} />
-              <button type="button" className="date-picker-button" onClick={() => openPicker(endDateRef)}>
+              <input id={endDateId} ref={endDateRef} type="date" value={endDate} onChange={handleEndDateChange} />
+              <button
+                type="button"
+                className="date-picker-button"
+                onClick={() => openPicker(endDateRef)}
+                aria-label="Pick date: pay period end date"
+              >
                 📅 PICK DATE
               </button>
             </div>

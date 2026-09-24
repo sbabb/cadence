@@ -1,4 +1,4 @@
-// The four palettes, and the machinery that swaps between them.
+// The three palettes, and the machinery that swaps between them.
 //
 // The stylesheet already had one rule that made this cheap: no component picks
 // its own hex, everything reads a custom property off :root. So a theme is
@@ -10,30 +10,36 @@
 // the over-budget track tint and the modal scrims. They had to move, because
 // a wine-dark track and a near-black scrim are both wrong on a light theme.
 //
-// Four palettes, ordered darkest to lightest - which is the order they appear
+// Three palettes, ordered darkest to lightest - which is the order they appear
 // in the picker, and is asserted by scripts/verify-themes.mjs so it cannot
 // drift as palettes come and go.
 //
-// Three are the published ones - Tokyo Night, Nord, Catppuccin Latte - rather
-// than hand-mixed variants, because these are IDE themes people already know
-// by sight, and the whole point is that picking "Nord" gives you the Nord you
-// were expecting. Slate is the exception and is ours: there is no canonical
-// neutral grey to borrow, and the gap it fills is a light theme with no hue in
-// it at all.
+// Two are published ones - Tokyo Night and Catppuccin Latte - rather than
+// hand-mixed variants, because these are IDE themes people already know by
+// sight. Slate is the exception and is ours: there is no canonical neutral
+// grey to borrow, and the gap it fills is a light theme with no hue in it at
+// all. The borrowed two are no longer quite their published selves, though:
+// both published greys fail WCAG AA as body text, and a few Latte accents fell
+// just short of 3:1 on the elevated panel, so those tokens have been moved
+// until they pass. Recognisable beats canonical; readable beats both.
 //
-// Gruvbox Dark and Catppuccin Mocha were removed. Nothing has to migrate for
-// that: getTheme() falls back to the default for an id it does not recognise,
-// and parseBackup() does the same for a theme name inside an imported file, so
-// a user or a backup still naming one of them lands on Tokyo Night rather than
-// on an error.
+// Nord, Gruvbox Dark and Catppuccin Mocha were removed. Nothing has to
+// migrate for that: getTheme() falls back to the default for an id it does
+// not recognise, and parseBackup() does the same for a theme name inside an
+// imported file, so a user or a backup still naming one of them lands on Tokyo
+// Night rather than on an error.
 //
-// Three structural rules every theme has to keep, or the UI stops making
+// Four structural rules every theme has to keep, or the UI stops making
 // sense:
 //   - bg / bg-panel / bg-elevated must be visibly separable, in that order of
 //     prominence. On light themes that means panels get DARKER, not lighter;
 //     the CSS handles this on its own given correct tokens.
-//   - green / amber / red must be distinguishable side by side, and legible
-//     against bg. They carry meaning; they are not decoration.
+//   - text, text-mid and text-dim are all real words, so all three clear
+//     WCAG AA's 4.5:1 on bg, bg-panel AND bg-elevated - the elevated panel is
+//     the tightest ground and the one the dim labels most often sit on. They
+//     still have to read as three steps, dim < mid < text.
+//   - green / amber / red must be distinguishable side by side, and clear 3:1
+//     on all three grounds. They carry meaning; they are not decoration.
 //   - red-deep must actually be deeper than red. The bar's overage colour
 //     interpolates toward it, and a "deep" red that's lighter than the red it
 //     starts from would run the ramp backwards.
@@ -76,8 +82,11 @@ export const THEMES = [
       border: '#2f3549',
       borderBright: '#3b4261',
       text: '#c0caf5',
-      textMid: '#787c99',
-      textDim: '#636c97',
+      // Lifted from the published #787c99 / #636c97, which read at 3.3:1 and
+      // 2.6:1 on the elevated panel - fine for a code editor's comments, not
+      // for the only label under a figure. Now 6.0:1 and 4.5:1 there.
+      textMid: '#abadbf',
+      textDim: '#8e94b4',
       green: '#9ece6a',
       amber: '#e0af68',
       red: '#f7768e',
@@ -115,21 +124,24 @@ export const THEMES = [
       border: '#9c9c9c',
       borderBright: '#7a7a7a',
       text: '#1c1c1c',
-      textMid: '#454545',
-      textDim: '#565656',
+      textMid: '#383838',
+      textDim: '#4a4a4a',
       // Chosen by search rather than by eye - see scripts/verify-themes.mjs
       // for the rules they had to satisfy. A light ground is the hard case for
-      // this app: every status colour has to clear 3:1 on BOTH the page and a
-      // panel, which forces them dark, while green/amber/red still have to be
-      // told apart from each other once they are. All three clear the 3:1 bar
-      // with most of a stop to spare on the tighter of the two grounds, and
-      // sit close enough together that no one of them shouts over the rest.
+      // this app: every status colour has to clear 3:1 on the page, a panel
+      // AND the elevated panel, which forces them dark, while green/amber/red
+      // still have to be told apart from each other once they are. On the
+      // elevated panel, the tightest of the three, all three sit just over
+      // the line (3.0-3.2:1), close enough together that no one of them
+      // shouts over the rest.
       green: '#20702c',
-      // Deliberately a touch lighter and more chromatic than the even-contrast
-      // set the search settled on. At equal contrast with green and red this
-      // colour lands on brown, and brown does not say "close to your limit" -
-      // amber has to look like amber or the middle of the ramp means nothing.
-      amber: '#8a6410',
+      // Still a touch more chromatic than the even-contrast set the search
+      // settled on. At equal contrast with green and red this colour lands on
+      // brown, and brown does not say "close to your limit" - amber has to
+      // look like amber or the middle of the ramp means nothing. It was
+      // lighter again (#8a6410) until the elevated panel was held to 3:1 too,
+      // which it missed at 2.8; this is the least darkening that clears it.
+      amber: '#825f0f',
       red: '#b33344',
       redDeep: '#8c172c',
       teal: '#1e6464',
@@ -160,16 +172,22 @@ export const THEMES = [
       border: '#bcc0cc',
       borderBright: '#9ca0b0',
       text: '#4c4f69',
-      textMid: '#6c6f85',
-      textDim: '#808395',
+      // Darkened from the published #6c6f85 / #808395, which fell to 3.7:1
+      // and 2.8:1 on the elevated panel. Latte's own text is only 6:1 there,
+      // so clearing 4.5 leaves the three greys close together; they still run
+      // dim < mid < text, which the verify script holds them to.
+      textMid: '#56586a',
+      textDim: '#606270',
       // Latte's own accents, not the dark themes' - Tokyo Night's #9ece6a on
       // white is barely there. These are darker and more saturated precisely
-      // so they survive being put on a pale ground.
-      green: '#379720',
-      amber: '#b97601',
+      // so they survive being put on a pale ground. Green, amber and teal are
+      // each nudged a shade darker than published (#379720, #b97601,
+      // #179299), which sat at 2.8:1 on the elevated panel; now 3.0:1.
+      green: '#35921f',
+      amber: '#b27101',
       red: '#d20f39',
       redDeep: '#a10b2c',
-      teal: '#179299',
+      teal: '#168d94',
       blue: '#1e66f5',
       cyan: '#0c8dc0',
       purple: '#8839ef',

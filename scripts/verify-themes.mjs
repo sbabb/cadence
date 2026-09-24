@@ -10,11 +10,18 @@
 //
 //   node scripts/verify-themes.mjs
 //
-// The thresholds are deliberately not a flat WCAG AA sweep. AA's 4.5:1 is
-// written for body text at normal weight; this app's coloured values are
-// 17-38px and semi-bold, which is the "large text" case at 3:1. So large
-// figures are held to 3.0, ordinary UI text to 4.5, and the two dim greys -
-// which exist precisely to recede - to 3.0 as secondary text.
+// The thresholds are WCAG 2.1 AA, applied to what each token is actually used
+// for. Every grey - text, text-mid, text-dim - carries real words, much of it
+// small (11-13px labels), so all three are held to AA's 4.5:1 for body text.
+// The coloured values are 17-38px and semi-bold, the "large text" case, so
+// they are held to 3:1.
+//
+// Both hold on all THREE grounds, not just the page. The dim greys used to be
+// held to 3:1, on the page and a panel only, on the theory that secondary
+// text exists to recede. An accessibility audit measured what that let
+// through: the most-used label colour in the app at 2.6:1 on the elevated
+// panel it most often sits on. Receding is what text-mid and text-dim are
+// for; being unreadable is not.
 
 import assert from 'node:assert/strict'
 import { THEMES, rampColorsFor } from '../src/utils/themes.js'
@@ -77,8 +84,19 @@ function perceptualDistance(a, b) {
 // --- the rules ----------------------------------------------------------
 
 const LARGE_TEXT = 3.0 // the spend figure, stat values, screen titles
-const BODY_TEXT = 4.5 // ordinary UI text
-const SECONDARY = 3.0 // the dim greys, which are meant to recede
+const BODY_TEXT = 4.5 // every grey that carries words, dim ones included
+
+// How far apart, in Oklab, neighbouring greys must sit to read as different
+// steps rather than one colour twice. The just-noticeable difference is around
+// 0.02; this asks for half as much again.
+const GREY_STEP = 0.03
+
+// The accents that actually appear in the interface, on any of the three
+// grounds. cyan, purple and orange are defined for every theme but the
+// stylesheet never paints with them - purple is only a swatch in the theme
+// picker, on that theme's own page colour - so they keep the page-and-panel
+// check below rather than being held to a ground they never touch.
+const ON_SCREEN_ACCENTS = ['green', 'amber', 'red', 'redDeep', 'teal', 'blue']
 
 console.log('Verifying themes\n')
 
@@ -86,27 +104,32 @@ for (const theme of THEMES) {
   console.log(`${theme.label} (${theme.mode})`)
   const t = theme.tokens
 
-  // 1. Body text has to be properly readable on both the page and a panel.
-  for (const [name, ground] of [['bg', t.bg], ['bg-panel', t.bgPanel], ['bg-elevated', t.bgElevated]]) {
-    check(`${theme.id}: text on ${name}`, () => {
-      const c = contrast(t.text, ground)
-      assert.ok(c >= BODY_TEXT, `text ${t.text} on ${ground} is ${ratio(c)}, needs ${BODY_TEXT}:1`)
-    })
+  const grounds = [['bg', t.bg], ['bg-panel', t.bgPanel], ['bg-elevated', t.bgElevated]]
+
+  // 1. Every grey is text, and every one of them has to be readable on every
+  //    ground. text-dim carries real words - "unlogged", "tap to log", the
+  //    label on every stat box, the hint under every field.
+  for (const [name, color] of [['text', t.text], ['text-mid', t.textMid], ['text-dim', t.textDim]]) {
+    for (const [groundName, ground] of grounds) {
+      check(`${theme.id}: ${name} on ${groundName}`, () => {
+        const c = contrast(color, ground)
+        assert.ok(c >= BODY_TEXT, `${name} ${color} on ${groundName} ${ground} is ${ratio(c)}, needs ${BODY_TEXT}:1`)
+      })
+    }
   }
 
-  // 2. The two greys recede on purpose, but "receding" and "unreadable" are
-  //    different things. text-dim carries real words - "unlogged", "tap to
-  //    log", the hint under every field.
-  for (const [name, color] of [['text-mid', t.textMid], ['text-dim', t.textDim]]) {
-    check(`${theme.id}: ${name} on bg`, () => {
-      const c = contrast(color, t.bg)
-      assert.ok(c >= SECONDARY, `${name} ${color} on ${t.bg} is ${ratio(c)}, needs ${SECONDARY}:1`)
-    })
-    check(`${theme.id}: ${name} on bg-panel`, () => {
-      const c = contrast(color, t.bgPanel)
-      assert.ok(c >= SECONDARY, `${name} ${color} on ${t.bgPanel} is ${ratio(c)}, needs ${SECONDARY}:1`)
-    })
-  }
+  // 2. Raising the two lower greys to 4.5:1 pushes them up toward text, and
+  //    the point of having three is that they are three. They must stay in
+  //    order - dim, then mid, then text - and each must sit visibly apart
+  //    from its neighbour, or text-mid is just text-dim or text again.
+  check(`${theme.id}: text-dim < text-mid < text, visibly`, () => {
+    const [cd, cm, ct] = [t.textDim, t.textMid, t.text].map((c) => contrast(c, t.bg))
+    assert.ok(cd < cm && cm < ct, `contrast on bg runs dim ${ratio(cd)}, mid ${ratio(cm)}, text ${ratio(ct)}`)
+    const lower = perceptualDistance(t.textDim, t.textMid)
+    const upper = perceptualDistance(t.textMid, t.text)
+    assert.ok(lower >= GREY_STEP, `text-dim and text-mid are only ${lower.toFixed(3)} apart in Oklab`)
+    assert.ok(upper >= GREY_STEP, `text-mid and text are only ${upper.toFixed(3)} apart in Oklab`)
+  })
 
   // 3. The status colours. These are the whole point of the app's colour and
   //    they appear as large figures, day-row values, and the bar itself.
@@ -128,6 +151,16 @@ for (const theme of THEMES) {
     check(`${theme.id}: ${name} on bg-panel`, () => {
       const c = contrast(color, t.bgPanel)
       assert.ok(c >= LARGE_TEXT, `${name} ${color} on ${t.bgPanel} is ${ratio(c)}, needs ${LARGE_TEXT}:1`)
+    })
+  }
+
+  //    ...and the ones the interface actually paints with hold on the
+  //    elevated panel too - today's row, the stat boxes and the dialogs all
+  //    sit on it, and it is the tightest of the three grounds on every theme.
+  for (const key of ON_SCREEN_ACCENTS) {
+    check(`${theme.id}: ${key} on bg-elevated`, () => {
+      const c = contrast(t[key], t.bgElevated)
+      assert.ok(c >= LARGE_TEXT, `${key} ${t[key]} on ${t.bgElevated} is ${ratio(c)}, needs ${LARGE_TEXT}:1`)
     })
   }
 
@@ -228,7 +261,9 @@ for (const theme of THEMES) {
   // theme is scraping past rather than comfortably clear.
   const summary = [
     `text ${ratio(contrast(t.text, t.bg))}`,
+    `mid ${ratio(contrast(t.textMid, t.bg))}`,
     `dim ${ratio(contrast(t.textDim, t.bg))}`,
+    `dim on elevated ${ratio(contrast(t.textDim, t.bgElevated))}`,
     `green ${ratio(contrast(t.green, t.bg))}`,
     `amber ${ratio(contrast(t.amber, t.bg))}`,
     `red ${ratio(contrast(t.red, t.bg))}`
