@@ -90,6 +90,12 @@ export default function DayList({ schedule, editable, selectedDate, onSelectDay,
             onKeyDown={
               selectable
                 ? (e) => {
+                    // Only a key pressed on the row itself. The SPENT button
+                    // inside it bubbles its Enter and Space up here, and
+                    // swallowing them with preventDefault cancelled the
+                    // button's own click - from a keyboard, that button
+                    // selected the day and could never open it.
+                    if (e.target !== e.currentTarget) return
                     if (e.key === 'Enter' || e.key === ' ') {
                       e.preventDefault()
                       onSelectDay(row.date)
