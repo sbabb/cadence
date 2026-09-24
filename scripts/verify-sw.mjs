@@ -293,7 +293,7 @@ await check('with nothing cached and no network, the failure is honest', async (
   assert.equal(got.isError, true, 'a real network error is the only truthful answer')
 })
 
-// --- everything else: the cache-first half, unchanged but worth pinning ----
+// --- assets/: the cache-first half, unchanged but worth pinning -----------
 
 await check('fingerprinted assets are served from cache without touching the network', async () => {
   let calls = 0
@@ -325,6 +325,48 @@ await check('an uncached asset is fetched and kept', async () => {
   assert.equal((await answer).body, 'freshly fetched')
   await new Promise((resolve) => setTimeout(resolve, 5))
   assert.equal((await cacheStorage.api.match(url)).body, 'freshly fetched')
+})
+
+// --- public/: same name forever, so it has to be asked about again ---------
+
+await check('a changed manifest reaches an app that already cached the old one', async () => {
+  // Shipped cache-first, the manifest and icons were pinned at whatever the
+  // phone saw first. A real Chromium showed it: rename the app on the server,
+  // reload three times, and the installed copy still had the old name.
+  const { dispatch, install, cacheStorage } = loadWorker({
+    fetchImpl: async () => new FakeResponse('manifest v2')
+  })
+  await install()
+
+  const url = `${SCOPE}manifest.webmanifest`
+  const cache = await cacheStorage.api.open('cadence-v2')
+  await cache.put({ url }, new FakeResponse('manifest v1'))
+
+  const { answer, settled } = dispatch(asset(url))
+  assert.equal((await answer).body, 'manifest v1', 'this launch answers from cache, without waiting')
+  await settled()
+  assert.equal((await cacheStorage.api.match(url)).body, 'manifest v2', 'the next launch has the new one')
+})
+
+await check('offline, the manifest and icons still come from cache', async () => {
+  const { dispatch, install, cacheStorage } = loadWorker({
+    fetchImpl: async () => {
+      throw new TypeError('Failed to fetch')
+    }
+  })
+  await install()
+
+  const url = `${SCOPE}icons/icon-192.png`
+  const cache = await cacheStorage.api.open('cadence-v2')
+  await cache.put({ url }, new FakeResponse('icon'))
+
+  const { answer, settled } = dispatch(asset(url))
+  assert.equal((await answer).body, 'icon')
+  const results = await settled()
+  assert.ok(
+    results.every((r) => r.status === 'fulfilled'),
+    'a refresh that fails offline must not surface as an error'
+  )
 })
 
 await check('non-GET requests and other origins are left entirely alone', async () => {

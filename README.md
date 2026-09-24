@@ -138,12 +138,15 @@ not a style guide; every rule in it describes a way the app can misbehave.
 - `scripts/verify-backup.mjs` — 27 checks on the backup format, most of them
   about what it must *refuse*. Importing replaces everything, so a malformed
   file being accepted is the one bug here that destroys data silently.
-- `scripts/verify-sw.mjs` — 14 checks on the service worker, which decides
+- `scripts/verify-sw.mjs` — 16 checks on the service worker, which decides
   whether the app opens at all. It loads `public/sw.js` into a stubbed worker
   environment and drives real requests through it: offline, stalled, slow, and
   answered with a deploy-window error page. None of those reproduce on a fast
   desk connection, which is the whole reason they are asserted rather than
-  tried.
+  tried. It also holds the worker to the difference between the files in
+  `assets/`, whose names change with their contents, and the manifest and
+  icons, which never change name and so have to be refetched: served
+  cache-first, a renamed app never reached a phone that had installed it.
 - `scripts/verify-backstack.mjs` — 21 checks on what the Android back button
   does. Every way this fails looks the same from the sofa ("I pressed back"),
   and the failure modes are opposites: too few history entries and back throws
@@ -323,7 +326,7 @@ scripts/
   verify-sheet.mjs     11 checks on the spend sheet's amount field
   verify-report.mjs    19 checks on the report card and its image
   verify-backup.mjs    27 backup-format checks, mostly rejections
-  verify-sw.mjs        14 checks on offline, stalled and mid-deploy launches
+  verify-sw.mjs        16 checks on offline, stalled and mid-deploy launches
   verify-backstack.mjs 21 checks on what the back button closes
 ```
 

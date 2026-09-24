@@ -13,10 +13,18 @@
 //     badly: an app that works offline has no business showing a blank screen
 //     while a stalled request runs its course.
 //
-//   everything else -> CACHE FIRST. Vite fingerprints every asset it emits
+//   assets/ -> CACHE FIRST. Vite fingerprints every asset it emits
 //     (index-a1b2c3d4.js), so a given URL's content can never change. Cached
 //     copies are safe by construction, and a new build simply requests new
 //     names.
+//
+//   everything else -> CACHE, THEN REFRESH. The manifest and the icons come
+//     from public/ and keep the same name forever, which is the navigation
+//     problem again in a smaller file. Served cache-first they were pinned at
+//     whatever the phone first saw: a renamed app or a redrawn icon never
+//     reached anyone who had already installed it. They are answered from
+//     cache so opening offline still works, and refetched behind that answer
+//     so the next launch has the current copy.
 //
 // Bump CACHE_VERSION to evict everything on the next load.
 
@@ -29,6 +37,10 @@ const CACHE_VERSION = 'cadence-v2'
 // root, "https://host/cadence/" under a project path. Everything below is
 // relative to it, so one build is installable from anywhere.
 const APP_SHELL = self.registration.scope
+
+// Vite's output directory, and the only place a file name carries a hash of
+// its contents. Nothing outside it is safe to serve without asking again.
+const ASSETS = `${APP_SHELL}assets/`
 
 // How long a navigation waits for the network before the cached shell is served
 // instead. Long enough that a normal connection always wins it outright, short
@@ -78,6 +90,23 @@ function fetchAndRecache(request) {
     .catch(() => null)
 }
 
+// Fetches anything that isn't a navigation and keeps a good answer. Unlike a
+// navigation, a bad status is passed through as it is: with no cached copy to
+// prefer, the real 404 is more honest than inventing a network error.
+function fetchAndKeep(request) {
+  return fetch(request).then((response) => {
+    // Opaque and error responses are not worth keeping.
+    if (response.ok) {
+      const copy = response.clone()
+      caches
+        .open(CACHE_VERSION)
+        .then((cache) => cache.put(request, copy))
+        .catch(() => {})
+    }
+    return response
+  })
+}
+
 async function navigate(request, network) {
   // Offline resolves null immediately rather than waiting out the timer, so
   // being genuinely offline stays as fast as it is today.
@@ -113,18 +142,15 @@ self.addEventListener('fetch', (event) => {
     return
   }
 
-  event.respondWith(
-    caches.match(request).then(
-      (hit) =>
-        hit ||
-        fetch(request).then((response) => {
-          // Opaque and error responses are not worth keeping.
-          if (response.ok) {
-            const copy = response.clone()
-            caches.open(CACHE_VERSION).then((cache) => cache.put(request, copy))
-          }
-          return response
-        })
-    )
-  )
+  if (request.url.startsWith(ASSETS)) {
+    event.respondWith(caches.match(request).then((hit) => hit || fetchAndKeep(request)))
+    return
+  }
+
+  // Started whether or not the cache answers, because refreshing the cached
+  // copy is the whole point. Its failure is caught here, where nothing is
+  // waiting on it, so being offline with a cached copy is not an error.
+  const network = fetchAndKeep(request)
+  event.waitUntil(network.catch(() => {}))
+  event.respondWith(caches.match(request).then((hit) => hit || network))
 })
