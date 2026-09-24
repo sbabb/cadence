@@ -148,13 +148,29 @@ export default function useBudgetData() {
   // Keep "today" accurate if the app is left open across midnight, and keep
   // the clock moving for the final-day countdown. Both read the DEVICE's local
   // date and time, so the app always agrees with the phone it's running on.
+  //
+  // The interval alone is not enough on a phone. Its clock can stop while the
+  // device sleeps, so after a night asleep it can still be most of thirty
+  // seconds from firing when the app is opened - long enough to see
+  // yesterday's dashboard and log breakfast against it. Coming back to the
+  // foreground re-reads the date straight away instead.
   useEffect(() => {
-    const interval = setInterval(() => {
+    const tick = () => {
       const t = todayStr()
       setToday((prev) => (prev !== t ? t : prev))
       setNow(new Date())
-    }, 30000)
-    return () => clearInterval(interval)
+    }
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') tick()
+    }
+    const interval = setInterval(tick, 30000)
+    document.addEventListener('visibilitychange', onVisible)
+    window.addEventListener('pageshow', tick)
+    return () => {
+      clearInterval(interval)
+      document.removeEventListener('visibilitychange', onVisible)
+      window.removeEventListener('pageshow', tick)
+    }
   }, [])
 
   const periods = data.periods
