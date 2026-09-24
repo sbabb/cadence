@@ -335,7 +335,7 @@ limit for free. There is no incremental cache to get out of step.
 
 ## Stack
 
-React 18 with plain function components and hooks — no state library. Vite 7.
+React 19 with plain function components and hooks — no state library. Vite 8.
 JetBrains Mono (SIL Open Font License 1.1, free for commercial use), self-hosted
 rather than pulled from a CDN so the app looks right offline. `localStorage`
 only (key `budgetHabitTracker.v1`); nothing leaves the browser and there is no
