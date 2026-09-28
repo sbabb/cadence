@@ -342,6 +342,25 @@ export default function Settings({
         </button>
       </section>
 
+      {/* A plain link, not a fetch: nothing leaves the device until someone
+          taps it, so the FAQ's "open the Network tab and watch nothing
+          happen" check still holds. */}
+      <section className="settings-section">
+        <h2 className="settings-section-title">SUPPORT CADENCE</h2>
+        <p className="settings-section-hint">
+          Cadence is free and stays free. If it helps you get to payday with money left, you can pay what you
+          like for it on Gumroad - it opens in your browser, and nothing from this app goes with it.
+        </p>
+        <a
+          className="faq-link-button support-link"
+          href="https://stevebabb.gumroad.com/l/cadence"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          PAY WHAT YOU LIKE <span aria-hidden="true">↗</span>
+        </a>
+      </section>
+
       <section className="settings-section">
         <h2 className="settings-section-title">ABANDON CURRENT PERIOD</h2>
         <p className="settings-section-hint">

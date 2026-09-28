@@ -16,7 +16,10 @@ across the days you have left, and it re-does that sum every time you log
 something.
 
 **Is it free?**
-Yes. No account, no subscription, no ads, nothing to sign up for.
+Yes. No account, no subscription, no ads, nothing to sign up for. If you want
+to chip in anyway, it is on Gumroad as pay-what-you-want, $0 included:
+`stevebabb.gumroad.com/l/cadence`, or **SUPPORT CADENCE** in Settings. Paying
+unlocks nothing; the app is the same either way.
 
 **Does it connect to my bank?**
 No. There is nothing to connect. You type in what you spent.

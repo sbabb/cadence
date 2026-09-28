@@ -52,7 +52,17 @@ export const FAQ = {
           "body": [
             {
               "type": "p",
-              "body": "Yes. No account, no subscription, no ads, nothing to sign up for."
+              "body": [
+                "Yes. No account, no subscription, no ads, nothing to sign up for. If you want to chip in anyway, it is on Gumroad as pay-what-you-want, $0 included: ",
+                {
+                  "c": "stevebabb.gumroad.com/l/cadence"
+                },
+                ", or ",
+                {
+                  "b": "SUPPORT CADENCE"
+                },
+                " in Settings. Paying unlocks nothing; the app is the same either way."
+              ]
             }
           ]
         },

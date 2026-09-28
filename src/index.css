@@ -1960,6 +1960,14 @@ input, button, select, textarea {
   border-color: var(--text);
 }
 
+/* The support link borrows the FAQ button's look, but it is an <a>, so it
+   has to shed the underline and centre itself the way a button does. */
+.support-link {
+  display: block;
+  text-align: center;
+  text-decoration: none;
+}
+
 .faq-screen {
   display: flex;
   flex-direction: column;
